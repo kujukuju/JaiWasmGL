@@ -1,0 +1,29 @@
+// these are the callable js functions
+
+void set_context(void) {}
+void write(void) {}
+void glCreateShader(void) {}
+void glCreateShader(void) {}
+void glShaderSource(void) {}
+void glCompileShader(void) {}
+void glGetShaderiv(void) {}
+void glCreateProgram(void) {}
+void glAttachShader(void) {}
+void glLinkProgram(void) {}
+void glGetProgramiv(void) {}
+void glDeleteShader(void) {}
+void glGenVertexArrays(void) {}
+void glGenBuffers(void) {}
+void glBindVertexArray(void) {}
+void glBindBuffer(void) {}
+void glBufferData(void) {}
+void glVertexAttribPointer(void) {}
+void glEnableVertexAttribArray(void) {}
+void glClear(void) {}
+void glClearColor(void) {}
+void glUseProgram(void) {}
+void glDrawElements(void) {}
+void glDeleteVertexArrays(void) {}
+void glDeleteBuffers(void) {}
+void glDeleteProgram(void) {}
+void glViewport(void) {}
