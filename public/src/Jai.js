@@ -65,6 +65,9 @@ const Jai = {
 }
 
 const MIN_MEMORY_BYTES = 256;
+if (MIN_MEMORY_BYTES & (MIN_MEMORY_BYTES - 1) !== 0) {
+    console.error('The minimum memory byte block size must be a power of two.');
+}
 
 const ACCESS_FREE = 0;
 const ACCESS_DIVIDED = 1;
@@ -74,6 +77,7 @@ const Memory = {
     heap: null,
     // a number that represents if its available, divided with a free child, divided with no free child, or claimed
     access: [],
+    indexRequests: [],
     nextPowerOfTwo: (value) => {
         value -= 1;
         value |= value >> 1;
@@ -94,14 +98,6 @@ const Memory = {
         return value;
     },
     alloc: (bytes) => {
-        const arrayRemoveFirst = (array) => {
-            for (let i = 0; i < array.length - 1; i++) {
-                array[i] = array[i + 1];
-            }
-        
-            array.length--;
-        };
-
         bytes = Math.max(bytes, MIN_MEMORY_BYTES);
 
         const size = Memory.nextPowerOfTwo(bytes);
@@ -114,16 +110,14 @@ const Memory = {
         while (true) {
             const depth = Memory.getDepthForBytes(size);
 
-            // depth, offset
-            // TODO dont allocate this memory every time
-            const indexRequests = [];
-            indexRequests.push(0);
+            Memory.indexRequests[0] = 0;
+            let indexRequestsLength = 1;
 
-            while (indexRequests.length > 0) {
+            while (indexRequestsLength > 0) {
                 // pop from last and push to last
-                const currentIndex = indexRequests[indexRequests.length - 1];
+                const currentIndex = Memory.indexRequests[indexRequestsLength - 1];
                 const currentDepth = Memory.getDepthForIndex(currentIndex);
-                indexRequests.length -= 1;
+                indexRequestsLength -= 1;
 
                 const currentAccessValue = Memory.access[currentIndex];
                 const currentAccessState = Memory.getAccessStateFromValue(currentAccessValue);
@@ -146,11 +140,11 @@ const Memory = {
 
                         // if the memory is free, only traverse one path
                         const childIndexLeft = Memory.getIndexForDepth(currentDepth + 1) + offset * 2;
-                        indexRequests.push(childIndexLeft);
+                        Memory.indexRequests[indexRequestsLength] = childIndexLeft;
+                        indexRequestsLength += 1;
                     }
                 } else if (currentAccessState === ACCESS_DIVIDED) {
                     const currentAccessAvailable = Memory.getAccessAvailableFromValue(currentAccessValue);
-                    console.log('Comparing size: ', currentAccessAvailable, size);
                     if (currentAccessAvailable >= size) {
                         // check both children for access
                         const offset = currentIndex - Memory.getIndexForDepth(currentDepth);
@@ -159,20 +153,41 @@ const Memory = {
                         // its best to not split contiguous memory, so go that path first
                         const leftChildAccessValue = Memory.access[childIndexLeft];
                         const leftChildAccessState = Memory.getAccessStateFromValue(leftChildAccessValue);
+                        const rightChildAccessValue = Memory.access[childIndexLeft + 1];
+                        const rightChildAccessState = Memory.getAccessStateFromValue(rightChildAccessValue);
+
+                        // try to find the smallest available memory that fits it
+                        if (leftChildAccessState === ACCESS_DIVIDED && rightChildAccessState === ACCESS_DIVIDED) {
+                            const leftChildAccessAvailable = Memory.getAccessAvailableFromValue(leftChildAccessValue);
+                            const rightChildAccessAvailable = Memory.getAccessAvailableFromValue(rightChildAccessValue);
+
+                            if (leftChildAccessAvailable >= size && rightChildAccessAvailable >= size) {
+                                if (leftChildAccessAvailable <= rightChildAccessAvailable) {
+                                    Memory.indexRequests[indexRequestsLength] = childIndexLeft;
+                                    indexRequestsLength += 1;
+                                    continue;
+                                } else {
+                                    Memory.indexRequests[indexRequestsLength] = childIndexLeft + 1;
+                                    indexRequestsLength += 1;
+                                    continue;
+                                }
+                            }
+                        }
+                        
                         if (leftChildAccessState === ACCESS_DIVIDED) {
                             const leftChildAccessAvailable = Memory.getAccessAvailableFromValue(leftChildAccessValue);
                             if (leftChildAccessAvailable >= size) {
-                                indexRequests.push(childIndexLeft);
+                                Memory.indexRequests[indexRequestsLength] = childIndexLeft;
+                                indexRequestsLength += 1;
                                 continue;
                             }
                         }
 
-                        const rightChildAccessValue = Memory.access[childIndexLeft + 1];
-                        const rightChildAccessState = Memory.getAccessStateFromValue(rightChildAccessValue);
                         if (rightChildAccessState === ACCESS_DIVIDED) {
                             const rightChildAccessAvailable = Memory.getAccessAvailableFromValue(rightChildAccessValue);
                             if (rightChildAccessAvailable >= size) {
-                                indexRequests.push(childIndexLeft + 1);
+                                Memory.indexRequests[indexRequestsLength] = childIndexLeft + 1;
+                                indexRequestsLength += 1;
                                 continue;
                             }
                         }
@@ -180,9 +195,11 @@ const Memory = {
                         // now either the left one is completely free, or the right one is completely free
                         // and we know the size is correct because it's gotten to this point
                         if (leftChildAccessState === ACCESS_FREE) {
-                            indexRequests.push(childIndexLeft);
+                            Memory.indexRequests[indexRequestsLength] = childIndexLeft;
+                            indexRequestsLength += 1;
                         } else {
-                            indexRequests.push(childIndexLeft + 1);
+                            Memory.indexRequests[indexRequestsLength] = childIndexLeft + 1;
+                            indexRequestsLength += 1;
                         }
                     }
                 }
@@ -207,8 +224,6 @@ const Memory = {
             const leftChildAvailable = Memory.getAccessAvailableFromValue(Memory.access[leftChildIndex]);
             const rightChildAvailable = Memory.getAccessAvailableFromValue(Memory.access[rightChildIndex]);
 
-            console.log('found ', leftChildAvailable, rightChildAvailable);
-
             Memory.access[parentIndex] = Memory.createAccessValue(ACCESS_DIVIDED, Math.max(leftChildAvailable, rightChildAvailable));
 
             currentIndex = parentIndex;
@@ -216,20 +231,81 @@ const Memory = {
             parentDepth = currentDepth - 1;
         }
     },
-    getParentIndexFromChild: (index) => {
-        
+    rebuildParentClaimed: (currentIndex) => {
+        // go a straight line up the tree and set all the memory values
+        let currentDepth = Memory.getDepthForIndex(currentIndex);
+        let parentDepth = currentDepth - 1;
+        while (parentDepth >= 0) {
+            const currentOffset = currentIndex - Memory.getIndexForDepth(currentDepth);
+            const parentOffset = Math.floor(currentOffset / 2);
+            const parentIndex = Memory.getIndexForDepth(parentDepth) + parentOffset;
+
+            const childDepthIndex = Memory.getIndexForDepth(currentDepth);
+            const leftChildIndex = childDepthIndex + parentOffset * 2;
+            const rightChildIndex = childDepthIndex + parentOffset * 2 + 1;
+
+            const leftChildState = Memory.getAccessStateFromValue(Memory.access[leftChildIndex]);
+            const leftChildAvailable = Memory.getAccessAvailableFromValue(Memory.access[leftChildIndex]);
+            const rightChildState = Memory.getAccessStateFromValue(Memory.access[rightChildIndex]);
+            const rightChildAvailable = Memory.getAccessAvailableFromValue(Memory.access[rightChildIndex]);
+
+            if (leftChildState === ACCESS_FREE && rightChildState === ACCESS_FREE) {
+                Memory.access[parentIndex] = Memory.createAccessValue(ACCESS_FREE, leftChildAvailable + rightChildAvailable);
+            } else {
+                Memory.access[parentIndex] = Memory.createAccessValue(ACCESS_DIVIDED, Math.max(leftChildAvailable, rightChildAvailable));
+            }
+
+            currentIndex = parentIndex;
+            currentDepth = parentDepth;
+            parentDepth = currentDepth - 1;
+        }
     },
     free: (pointer) => {
-        
+        // the pointer only tells you where horizontally in the tree it is, so we still need to potentially check every depth
+        // first we need to get the minimum possible depth
+        // so
+        // 256 / 256 = 1        1 / 1 = 1
+        // 256 / 512 = 0.5      1 / 2 = 0.5
+        // 256 / 1024 = 0.25    1 / 4 = 0.25
+        // 256 / 2048 = 0.125   1 / 8 = 0.125
+        // 1024 / 256 = 4       4 / 1 = 4
+        // 1024 / 512 = 2       4 / 2 = 2
+        // 1024 / 1024 = 1      4 / 4 = 1
+        // 1280 / 256 = 5       5 / 1 = 5
+        // 1280 / 512 = 2.5     5 / 2 = 2.5
+        // 1280 / 1024 = 1.25   5 / 4 = 1.25
+        // so basically we need to get the maximum stable denominator
+        // idk this seems to be wrong so im just gonna do it another way
+
+        let currentDepth = Memory.getDepthForIndex(Memory.access.length - 1);
+        let currentBlockSize = MIN_MEMORY_BYTES;
+        // we add the buffer length to prevent issues at 0
+        while ((pointer + Memory.heap.buffer.byteLength) % currentBlockSize === 0) {
+            const offset = pointer / currentBlockSize;
+            const index = Memory.getIndexForDepth(currentDepth) + offset;
+
+            if (Memory.getAccessStateFromValue(Memory.access[index]) === ACCESS_CLAIMED) {
+                Memory.access[index] = Memory.createAccessValue(ACCESS_FREE, currentBlockSize);
+                Memory.rebuildParentClaimed(index);
+                return;
+            }
+
+            currentDepth -= 1;
+            currentBlockSize *= 2;
+        }
+
+        console.error('Unable to find claimed memory to free. ', pointer);
     },
     createAccessValue: (state, available) => {
-        return (state << 28) | available;
+        // 28 because javascript sucks and becomes innaccurate with their dumb floating point integer shit at 30
+        // also we divide by min memory bytes so that we can allocate more than 128 or 256 mb if we want to, otherwise it breaks
+        return (state << 28) | (available / MIN_MEMORY_BYTES);
     },
     getAccessStateFromValue: (value) => {
         return (value & 0xF0000000) >> 28;
     },
     getAccessAvailableFromValue: (value) => {
-        return (value & 0x0FFFFFFF);
+        return (value & 0x0FFFFFFF) * MIN_MEMORY_BYTES;
     },
     getAccessPointer: (depth, offset) => {
         // top level is depth 0, offset 0
@@ -243,7 +319,10 @@ const Memory = {
         return Math.pow(2, depth) + offset - 1;
     },
     getPointerFromIndex: (index) => {
-        return index * MIN_MEMORY_BYTES;
+        const depth = Memory.getDepthForIndex(index);
+        const chunk = Memory.getChunkSizeForDepth(depth);
+        const start = Memory.getIndexForDepth(depth);
+        return (index - start) * chunk;
     },
     printAccessStates: () => {
         let currentDepth = 0;
