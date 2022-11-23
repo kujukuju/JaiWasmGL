@@ -1,29 +1,42 @@
 // these are the callable js functions
 
-void set_context(void) {}
-void write(void) {}
-void glCreateShader(void) {}
-void glCreateShader(void) {}
-void glShaderSource(void) {}
-void glCompileShader(void) {}
-void glGetShaderiv(void) {}
-void glCreateProgram(void) {}
-void glAttachShader(void) {}
-void glLinkProgram(void) {}
-void glGetProgramiv(void) {}
-void glDeleteShader(void) {}
-void glGenVertexArrays(void) {}
-void glGenBuffers(void) {}
-void glBindVertexArray(void) {}
-void glBindBuffer(void) {}
-void glBufferData(void) {}
-void glVertexAttribPointer(void) {}
-void glEnableVertexAttribArray(void) {}
-void glClear(void) {}
-void glClearColor(void) {}
-void glUseProgram(void) {}
-void glDrawElements(void) {}
-void glDeleteVertexArrays(void) {}
-void glDeleteBuffers(void) {}
-void glDeleteProgram(void) {}
-void glViewport(void) {}
+#if defined(WIN32) || defined(_WIN32)
+#define EXPORT __declspec(dllexport)
+#elif
+#define EXPORT
+#endif
+
+
+EXPORT void set_context(void) {}
+EXPORT void alloc(void) {}
+EXPORT void write(void) {}
+EXPORT void print(void) {}
+EXPORT void sprint(void) {}
+EXPORT void wasm_print(void) {}
+EXPORT void wasm_alloc(void) {}
+EXPORT void wasm_free(void) {}
+EXPORT void glCreateShader(void) {}
+EXPORT void glShaderSource(void) {}
+EXPORT void glCompileShader(void) {}
+EXPORT void glGetShaderiv(void) {}
+EXPORT void glCreateProgram(void) {}
+EXPORT void glAttachShader(void) {}
+EXPORT void glLinkProgram(void) {}
+EXPORT void glGetProgramiv(void) {}
+EXPORT void glDeleteShader(void) {}
+EXPORT void glGenVertexArrays(void) {}
+EXPORT void glGenBuffers(void) {}
+EXPORT void glBindVertexArray(void) {}
+EXPORT void glBindBuffer(void) {}
+EXPORT void glBufferData(void) {}
+EXPORT void glVertexAttribPointer(void) {}
+EXPORT void glEnableVertexAttribArray(void) {}
+EXPORT void glClear(void) {}
+EXPORT void glClearColor(void) {}
+EXPORT void glUseProgram(void) {}
+EXPORT void glDrawElements(void) {}
+EXPORT void glDeleteVertexArrays(void) {}
+EXPORT void glDeleteBuffers(void) {}
+EXPORT void glDeleteProgram(void) {}
+EXPORT void glViewport(void) {}
+EXPORT void empty(void) {}

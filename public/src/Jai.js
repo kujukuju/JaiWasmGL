@@ -30,7 +30,8 @@ const Jai = {
             Memory.heap = wasm.instance.exports.memory;
             Memory.rebuildAccess();
         
-            instance.exports.main(0, NULL64);
+            console.log(instance.exports.main);
+            instance.exports.main(0, BigInt(0));
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat.
             const validRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+_[0-9a-z]+$');
@@ -261,6 +262,7 @@ const Memory = {
         }
     },
     free: (pointer) => {
+        // returns the size of the freed memory
         // the pointer only tells you where horizontally in the tree it is, so we still need to potentially check every depth
         // first we need to get the minimum possible depth
         // so
@@ -287,7 +289,7 @@ const Memory = {
             if (Memory.getAccessStateFromValue(Memory.access[index]) === ACCESS_CLAIMED) {
                 Memory.access[index] = Memory.createAccessValue(ACCESS_FREE, currentBlockSize);
                 Memory.rebuildParentClaimed(index);
-                return;
+                return currentBlockSize;
             }
 
             currentDepth -= 1;
@@ -466,41 +468,99 @@ const Memory = {
 };
 
 const std = {
-    'write': (fd, buf, count) => {
-        let log = undefined;
-        switch (fd) {
-            case 1: log = console.log;   break;
-            case 2: log = console.error; break;
-            default: {
-                console.error("write: Unsupported file descriptor "+fd);
-                return -EBADF;
-            }
-        }
-        const buffer = Jai.instance.exports.memory.buffer;
-        const bytes = new Uint8Array(buffer, Number(buf), Number(count));
-        let text = new TextDecoder().decode(bytes);
-        let index = text.indexOf('\n');
-        while (index >= 0) {
-            output_buffer += text.slice(0, index);
-            text = text.slice(index + 1);
-            log(output_buffer);
-            output = "";
-            index = text.indexOf('\n');
-        }
-        if (text.length > 0) output_buffer += text;
-        return count;
+    // 'write': (fd, buf, count) => {
+    //     let log = undefined;
+    //     switch (fd) {
+    //         case 1: log = console.log;   break;
+    //         case 2: log = console.error; break;
+    //         default: {
+    //             console.error("write: Unsupported file descriptor "+fd);
+    //             return -EBADF;
+    //         }
+    //     }
+    //     const buffer = Jai.instance.exports.memory.buffer;
+    //     const bytes = new Uint8Array(buffer, Number(buf), Number(count));
+    //     let text = new TextDecoder().decode(bytes);
+    //     let index = text.indexOf('\n');
+    //     while (index >= 0) {
+    //         output_buffer += text.slice(0, index);
+    //         text = text.slice(index + 1);
+    //         log(output_buffer);
+    //         output = "";
+    //         index = text.indexOf('\n');
+    //     }
+    //     if (text.length > 0) output_buffer += text;
+    //     return count;
+    // },
+    'wasm_print': (pointer, length) => {
+        const bytes = new Uint8Array(Memory.heap.buffer, Number(pointer), Number(length));
+        const string = new TextDecoder().decode(bytes);
+        console.log('wasm_print ', string);
     },
+    // 'wasm_alloc': (size) => {
+    //     return Memory.alloc(size);
+    // },
+    // 'wasm_free': (pointer) => {
+    //     Memory.free(pointer);
+    // },
     'memset': (s, c, n) => {
-        const buffer = Jai.instance.exports.memory.buffer;
-        const bytes = new Uint8Array(buffer, Number(s), Number(n));
+        const bytes = new Uint8Array(Memory.heap.buffer, Number(s), Number(n));
         bytes.fill(c);
         return s;
     },
+    'SetUnhandledExceptionFilter': value => BigInt(0),
+    'SymSetOptions': value => 0,
+    'SymInitialize': value => 0,
     'fabs': Math.abs,
     'powf': Math.pow,
     'set_context': (context) => Jai.context = BigInt(context),
     'sigemptyset': () => {},
     'sigaction': () => {},
+    'malloc': (size) => {
+        console.log('requesting ', size);
+        return BigInt(Memory.alloc(Number(size)));
+    },
+    'realloc': (pointer, size) => {
+        // TODO try not to move the content
+        // TODO using typed array copy might be faster if I can guarantee itll never have to copy right to left
+        pointer = Number(pointer);
+        const oldSize = Memory.free(pointer);
+
+        const newPointer = Memory.alloc(size);
+        if (newPointer === pointer) {
+            // no need to copy data, yay
+            return BigInt(newPointer);
+        } else if (newPointer <= pointer) {
+            // copy left to right
+            for (let i = 0; i < oldSize; i++) {
+                Memory.heap.buffer[newPointer + i] = Memory.heap.buffer[pointer + i];
+            }
+
+            return BigInt(newPointer);
+        } else {
+            // copy right to left
+            for (let i = oldSize - 1; i >= 0; i--) {
+                Memory.heap.buffer[newPointer + i] = Memory.heap.buffer[pointer + i];
+            }
+
+            return BigInt(newPointer);
+        }
+    },
+    'free': (pointer) => {
+        Memory.free(Number(pointer));
+    },
+    'memcpy': (dest, src, length) => {
+        dest = Number(dest);
+        src = Number(src);
+        // TODO do this faster using typed array method
+        for (let i = 0; i < length; i++) {
+            Memory.heap.buffer[dest + i] = Memory.heap.buffer[src + i];
+        }
+        return BigInt(dest);
+    },
+    'EnterCriticalSection': () => {/*does nothing since we dont require thread sync, probably*/},
+    'WriteFile': (handle, buffer, buffer_length, written_result, overlapped) => {console.log('file ', buffer, buffer_length); return 0;},
+    'LeaveCriticalSection': () => {/*does nothing since we dont require thread sync, probably*/},
     'glCreateShader': (type) => {
         gl.createShader(type);
         return 0;
