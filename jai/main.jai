@@ -40,10 +40,9 @@ equals :: (h1: *Code_Procedure_Header, h2: *Code_Procedure_Header) -> bool {
 }
 
 equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
-    // I can't check the parameter count, because overriding the print method requires that .. args is the last parameter
-    // if a.count != b.count {
-    //     return false;
-    // }
+    if a.count != b.count {
+        return false;
+    }
 
     count := min(a.count, b.count);
     for i: 0..count - 1 {
@@ -71,13 +70,59 @@ equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
 }
 
 prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
-    alloc_code := code_of(Bindings.Replacements.print);
-    alloc_root := compiler_get_nodes(alloc_code);
-    assert(alloc_root.kind == .PROCEDURE_HEADER);
-    alloc_header := cast(*Code_Procedure_Header) alloc_root;
+    replacement_list: [..] *Code_Procedure_Header;
 
-    print("header %\n", << alloc_header);
-    print("body %\n", alloc_header.body_or_null);
+    #insert #run () -> string {
+        replacements := compiler_get_nodes(code_of(Bindings.Replacements));
+        assert(replacements.kind == .TYPE_DEFINITION);
+        replacements_type_definition := cast(*Code_Type_Definition) replacements;
+        replacements_type := replacements_type_definition.info;
+        assert(replacements_type.type == .STRUCT);
+        replacements_struct := cast(*Type_Info_Struct) replacements_type;
+
+        builder: String_Builder;
+        for i: 0..replacements_struct.members.count - 1 {
+            member := replacements_struct.members[i];
+            if member.offset_into_constant_storage == -1 {
+                continue;
+            }
+
+            // member_type :: << cast(*Type) *member.type;
+            // member_pointer: *v = << cast(*u64) replacements_storage[member.offset_into_constant_storage];
+            // member_data: *member_type;
+            // memcpy(*member_data, replacements_storage[member.offset_into_constant_storage], size_of(member_data));
+            
+            append(*builder, tprint("array_add(*replacement_list, cast(*Code_Procedure_Header) compiler_get_nodes(code_of(Bindings.Replacements.%)));\n", member.name));
+        }
+
+        return builder_to_string(*builder);
+    }();
+
+    for replacement: replacement_list {
+        assert(replacement.kind == .PROCEDURE_HEADER);
+    }
+
+    // TODO do this for everything in replacements
+    // print_code := code_of(Bindings.Replacements.print_to_builder);
+    // print_root := compiler_get_nodes(print_code);
+    // assert(print_root.kind == .PROCEDURE_HEADER);
+    // print_header := cast(*Code_Procedure_Header) print_root;
+    // print_body := print_header.body_or_null;
+
+    // print("header %\n", << print_header);
+    // print("body %\n", print_header.body_or_null);
+
+    make_false_literal :: () -> *Code_Literal {
+        Basic :: #import "Basic";
+        literal := Basic.New(Code_Literal);
+
+        literal.kind          = .LITERAL;
+        literal.value_type    = .FALSE;
+        // literal.value_flags   = .IS_A_NUMBER;
+        // literal._s64 = v;
+
+        return literal;
+    }
 
     object_file_to_translate_to_wasm := "";
     while true {
@@ -85,83 +130,31 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
         if !message break;
 
         if message.kind == {
-            case .TYPECHECKED; {
+            case .TYPECHECKED;
                 typechecked := cast(*Message_Typechecked) message;
 
-                // for typechecked.declarations {
-                //     expression: *Code_Node = it.expression.expression;
-                //     if !expression {
-                //         continue;
-                //     }
-                //     if expression.kind != .PROCEDURE_HEADER {
-                //         // if expression.kind == .TYPE_DEFINITION {
-                //         //     print("TYPE_DEFINITION %\n", << cast(*Code_Type_Definition) expression);
-                //         // }
-                //         // if expression.kind == .DECLARATION {
-                //         //     print("DECLARATION %\n", << cast(*Code_Declaration) expression);
-                //         // }
-                //         continue;
-                //     }
-                //     header := cast(*Code_Procedure_Header) expression;
-
-                //     if header.name == "print" {
-                //         print("modifying print\n");
-                //     }
-                //     if equals(header, alloc_header) {
-                //         print("really modifying print\n");
-                //         print("real header %\n", << it.expression);
-
-                //         if header.body_or_null {
-                //             new_statements: [..] *Code_Node;
-                //             header.body_or_null.block.statements = new_statements;
-                //             compiler_modify_procedure(w, header.body_or_null);
-                //         }
-
-                //         // TODO do I need to override parameters?
-                //         // header.constants_block = alloc_header.constants_block;
-                //         header.arguments = array_copy(alloc_header.arguments);
-                //         header.returns = array_copy(alloc_header.returns);
-                //         header.parameter_usings = array_copy(alloc_header.parameter_usings);
-                //         header.name = copy_string(alloc_header.name);
-                //         header.foreign_function_name = copy_string(alloc_header.foreign_function_name);
-                //         header.body_or_null = null;
-                //         header.procedure_flags = alloc_header.procedure_flags;
-
-                //         // new_statements: [..] *Code_Node;
-
-                //         compiler_make_procedure_live(w, header);
-                //         // compiler_modify_procedure(w, it.expression);
-                //     }
-                // }
-
-                for typechecked.procedure_headers {
-                    if it.expression.name == "print" {
-                        print("modifying print\n");
-                    }
-                    if equals(it.expression, alloc_header) {
-                        print("really modifying print\n");
-                        print("real header %\n", << it.expression);
-
-                        // TODO do I need to override parameters?
-                        // it.expression.constants_block = alloc_header.constants_block;
-                        it.expression.arguments = array_copy(alloc_header.arguments);
-                        it.expression.returns = array_copy(alloc_header.returns);
-                        it.expression.parameter_usings = array_copy(alloc_header.parameter_usings);
-                        it.expression.name = copy_string(alloc_header.name);
-                        it.expression.foreign_function_name = copy_string(alloc_header.foreign_function_name);
-                        it.expression.body_or_null = null;
-                        it.expression.procedure_flags = alloc_header.procedure_flags;
-
-                        // new_statements: [..] *Code_Node;
-
-                        print("final result %\n", << it.expression);
-                        compiler_make_procedure_live(w, it.expression);
-                        // compiler_modify_procedure(w, it.expression);
-                    }
-                }
-
                 for typechecked.procedure_bodies {
-                    if it.expression.body_flags & .ALREADY_MODIFIED {
+                    body: *Code_Procedure_Body = it.expression;
+                    if body.body_flags & .ALREADY_MODIFIED {
+                        continue;
+                    }
+
+                    // if we can replace this with a replacement function then do it and continue
+                    replaced_body := false;
+                    for replacement_header: replacement_list {
+                        if equals(body.header, replacement_header) {
+                            replacement_body := replacement_header.body_or_null;
+                            print("replaced body of %\n", body.header.name);
+                            if replacement_body {
+                                body.block.statements = replacement_body.block.statements;
+                                compiler_modify_procedure(w, body);
+                                replaced_body = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if replaced_body {
                         continue;
                     }
 
@@ -169,37 +162,54 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
                     for it.subexpressions {
                         if it.kind == .ASM {
                             // NOTE: #asm blocks are not translatable to WASM, we need to remove them
-                            compiler_report("ASM DETECTED!!!", make_location(it), .WARNING);
+                            // compiler_report("ASM DETECTED!", make_location(it), .WARNING);
                             contains_asm = true;
                         }
                     }
                     if contains_asm {
                         body := it.expression;
-                        // TODO: delete only the ASM blocks
-                        // I'm just too lazy to write such a surgically precise code right now, sorry
-                        if body.header.name == "print_to_builder" {
-                            continue;
-                        }
-                        compiler_report(tprint("Removing the whole body of the function %. DON'T USE IT!!!", body.header.name),
-                                        make_location(body),
-                                        .WARNING);
+                        compiler_report(tprint("Removing the body of %.", body.header.name), make_location(body), .WARNING);
                         new_statements: [..] *Code_Node;
                         body.block.statements = new_statements;
                         compiler_modify_procedure(w, body);
                     }
                 }
-            }
 
-            case .PHASE; {
+                // for typechecked.procedure_bodies {
+                //     if it.expression.body_flags & .ALREADY_MODIFIED {
+                //         continue;
+                //     }
+
+                //     contains_asm := false;
+                //     for it.subexpressions {
+                //         if it.kind == .ASM {
+                //             // NOTE: #asm blocks are not translatable to WASM, we need to remove them
+                //             compiler_report("ASM DETECTED!!!", make_location(it), .WARNING);
+                //             contains_asm = true;
+                //         }
+                //     }
+                //     // it already skips modified bodies, so if we previously found a replacement we don't have to worry
+                //     if contains_asm {
+                //         body := it.expression;
+                //         compiler_report(tprint("Removing the whole body of the function %. DON'T USE IT!!!", body.header.name),
+                //                         make_location(body),
+                //                         .WARNING);
+                //         new_statements: [..] *Code_Node;
+                //         body.block.statements = new_statements;
+                //         compiler_modify_procedure(w, body);
+                //     }
+                // }
+
+            case .PHASE;
                 phase := cast(*Message_Phase) message;
                 if phase.phase == .POST_WRITE_EXECUTABLE {
                     assert(phase.compiler_generated_object_files.count == 1, "The build process supports only a single object file compilation");
                     assert(object_file_to_translate_to_wasm.count == 0, "The build process supports only a single object file compilation");
                     object_file_to_translate_to_wasm = phase.compiler_generated_object_files[0];
                 }
-            }
 
-            case .COMPLETE; break;
+            case .COMPLETE;
+                break;
         }
     }
 
@@ -224,7 +234,10 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
     build_options.output_executable_name = "jaiwasm";
     build_options.llvm_options.output_bitcode = true;
     build_options.llvm_options.enable_split_modules = false;
+    build_options.import_path = .["C:/jai/modules", #run tprint("%replacements", #filepath)];
     set_build_options(build_options, workspace);
+
+    // remap_import(workspace, "*", "Basic", "BasicWasm");
 
     compiler_begin_intercept(workspace);
     files := file_list(tprint("%src", #filepath), true);
