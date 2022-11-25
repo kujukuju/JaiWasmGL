@@ -1,7 +1,7 @@
 WasmBindings :: struct #type_info_procedures_are_void_pointers {
     set_context :: (c: *Context) #foreign #compiler;
     write :: (text: *u8) #foreign #compiler;
-    wasm_print :: ($value: string) {
+    wasm_print :: (value: string) {
         wasm_print_ :: (value: *u8, count: int) #foreign #compiler "wasm_print";
 
         pointer := alloc(value.count);

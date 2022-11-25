@@ -1,16 +1,52 @@
 main :: () {
     set_context(*context);
 
-    wasm_print("test");
+    // builder: String_Builder;
+    // append(*builder, "test");
+    // final := builder_to_string(*builder);
+    // print(final);
 
-    values := NewArray(128, u8);
-    array_free(values);
+    // array := int.[234, 2346, 1, 64, 3, 234];
 
-    print("test?\n");
+    // test: string;
+    // test.data = xx array.data;
+    // write_string(test);
+
+    // write_string("test\n");
+    // print("WHAT");
+    // print(sprint("HEY %\n", 10));
+
+    // what :: "sjkadhjskhfjkshdfjkhsdf";
+    // write_string(what);
+
+    // wasm_print("test");
+
+    // values := NewArray(128, u8);
+
+    // pointer_text: FixedString(128);
+    // write_int(*pointer_text, cast(int) values.data);
+    // write(*pointer_text, "what");
+    // memcpy(values.data, pointer_text.buffer.data, values.count);
+
+    // real_string: string;
+    // real_string.data = values.data;
+    // real_string.count = 128;
+    // wasm_print(real_string);
+
+    // wasm_print("what the fuck\n");
+
+    // array_free(values);
+
+    // print("test?\n");
 
     // test: [..] u8;
+    // wasm_print(sprint("test %\n", test.count));
     // array_add(*test, 0);
+    // print("test %\n", test.count);
     // array_free(test);
+
+    // stack: [512] u8;
+    // wasm_print(sprint("pointer %\nheap pointer%\n", stack.data, test.data));
 
     // this cant work right? anything passed to wasm has to be allocated memory afaik
     // vertexShaderSource: *u8 : "#version 330 core\n"
@@ -26,15 +62,15 @@ main :: () {
     // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     // "}\n\0";
 
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
+    // // build and compile our shader program
+    // // ------------------------------------
+    // // vertex shader
     // vertexShader: u32 = glCreateShader(GL_VERTEX_SHADER);
     // glShaderSource(vertexShader, 1, *vertexShaderSource, 0);
     // glCompileShader(vertexShader);
     // // check for shader compile errors
     // success: s32;
-    // char infoLog[512];
+    // infoLog: [512] u8;
     // glGetShaderiv(vertexShader, GL_COMPILE_STATUS, *success);
     // if (!success) {
     //     js_print("shader error\n");

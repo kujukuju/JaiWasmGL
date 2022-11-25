@@ -15,6 +15,9 @@ function make_environment(...envs) {
 const NULL64 = 0n;
 const EBADF = 9;
 
+// 16 mb
+const DEFAULT_HEAP = 0x1000000;
+
 const Jai = {
     // TODO get rid of this if I can
     instance: null,
@@ -24,19 +27,25 @@ const Jai = {
         WebAssembly.instantiateStreaming(fetch('/wasm/main32.wasm'), {
             'env': make_environment(std, demo)
         }).then(wasm => {
-            const instance = wasm.instance;
             Jai.instance = wasm.instance;
 
-            Memory.heap = wasm.instance.exports.memory;
+            const pages = DEFAULT_HEAP / 0x10000;
+            if (Math.floor(pages) !== pages) {
+                console.error('Your default heap size must be an increment of the size of a page, which is 64kb.');
+                return;
+            }
+
+            Memory.allocated = Jai.instance.exports.memory;
+            Memory.allocated.grow(pages);
             Memory.rebuildAccess();
         
-            console.log(instance.exports.main);
-            instance.exports.main(0, BigInt(0));
+            console.log(Jai.instance.exports.main);
+            Jai.instance.exports.main(0, BigInt(0));
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat.
             const validRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+_[0-9a-z]+$');
 
-            for (const name in instance.exports) {
+            for (const name in Jai.instance.exports) {
                 if (validRegex.test(name)) {
                     const nameParts = name.split('_');
                     nameParts.length -= 1;
@@ -47,9 +56,9 @@ const Jai = {
                         continue;
                     }
 
-                    console.log('valid name ', validName, instance.exports[name]);
+                    console.log('valid name ', validName, Jai.instance.exports[name]);
     
-                    Jai[validName] = instance.exports[name].bind(this, Jai.context);
+                    Jai[validName] = Jai.instance.exports[name].bind(this, Jai.context);
                 }
             }
 
@@ -65,7 +74,11 @@ const Jai = {
     },
 }
 
-const MIN_MEMORY_BYTES = 256;
+// maybe this is too large? im not sure
+// but its definitely faster for the program to just grab a block and allocated it rather than find the most accurate size
+// if your program is for some reason allocating a ton of tiny blocks, this will need to be reduced
+// but that seems less likely than large blocks
+const MIN_MEMORY_BYTES = 32768;
 if (MIN_MEMORY_BYTES & (MIN_MEMORY_BYTES - 1) !== 0) {
     console.error('The minimum memory byte block size must be a power of two.');
 }
@@ -75,7 +88,9 @@ const ACCESS_DIVIDED = 1;
 const ACCESS_CLAIMED = 2;
 
 const Memory = {
-    heap: null,
+    allocated: null,
+    heapPointer: 0,
+    heapSize: 0,
     // a number that represents if its available, divided with a free child, divided with no free child, or claimed
     access: [],
     indexRequests: [],
@@ -103,7 +118,7 @@ const Memory = {
 
         const size = Memory.nextPowerOfTwo(bytes);
         // its assumed that it should at least fit inside the memory
-        while (size > Memory.heap.buffer.byteLength) {
+        while (size > Memory.heapSize) {
             Memory.grow();
         }
 
@@ -132,6 +147,7 @@ const Memory = {
                         Memory.access[currentIndex] = Memory.createAccessValue(ACCESS_CLAIMED, 0);
                         Memory.rebuildParentAvailableSize(currentIndex);
 
+                        console.log('Claiming ', Memory.getPointerFromIndex(currentIndex));
                         return Memory.getPointerFromIndex(currentIndex);
                     } else {
                         // this memory cannot end without finding a valid spot since the previous iterations criteria were met
@@ -262,6 +278,8 @@ const Memory = {
         }
     },
     free: (pointer) => {
+        console.log('Freeing ', pointer);
+        pointer -= Memory.heapPointer;
         // returns the size of the freed memory
         // the pointer only tells you where horizontally in the tree it is, so we still need to potentially check every depth
         // first we need to get the minimum possible depth
@@ -281,8 +299,8 @@ const Memory = {
 
         let currentDepth = Memory.getDepthForIndex(Memory.access.length - 1);
         let currentBlockSize = MIN_MEMORY_BYTES;
-        // we add the buffer length to prevent issues at 0
-        while ((pointer + Memory.heap.buffer.byteLength) % currentBlockSize === 0) {
+        // add heap size to avoid issues at 0
+        while ((pointer + Memory.heapSize) % currentBlockSize === 0) {
             const offset = pointer / currentBlockSize;
             const index = Memory.getIndexForDepth(currentDepth) + offset;
 
@@ -324,7 +342,7 @@ const Memory = {
         const depth = Memory.getDepthForIndex(index);
         const chunk = Memory.getChunkSizeForDepth(depth);
         const start = Memory.getIndexForDepth(depth);
-        return (index - start) * chunk;
+        return (index - start) * chunk + Memory.heapPointer;
     },
     printAccessStates: () => {
         let currentDepth = 0;
@@ -352,18 +370,18 @@ const Memory = {
     grow: () => {
         console.log('Growing heap memory.');
         // one page is 65536 bytes
-        const currentPageCount = Memory.heap.buffer.byteLength / 0x10000;
+        const currentPageCount = Memory.heapSize / 0x10000;
         if (Math.floor(currentPageCount) !== currentPageCount) {
             console.error('Cannot have fractional page counts. If this ever happens, you need to manually instantiate the size of the original memory buffer to be a power of 65536.');
             return;
         }
 
         // we only double buffer size
-        Memory.heap.grow(currentPageCount);
+        Memory.allocated.grow(currentPageCount);
         Memory.rebuildAccess();
     },
     getChunkSizeForDepth: (depth) => {
-        return Memory.heap.buffer.byteLength / Memory.getLengthForDepth(depth);
+        return Memory.heapSize / Memory.getLengthForDepth(depth);
     },
     getDepthForIndex: (index) => {
         // 0 = 0
@@ -416,13 +434,17 @@ const Memory = {
         // 2 = 4
         // 3 = 8
         // idk if round is necessary here but im worried about floating point precision
-        return Math.round(Math.log2(Memory.heap.buffer.byteLength / bytes));
+        return Math.round(Math.log2(Memory.heapSize / bytes));
     },
     rebuildAccess: () => {
+        Memory.heapPointer = Number(Jai.instance.exports.__heap_base.value);
+        Memory.heapSize = Memory.previousPowerOfTwo(Memory.allocated.buffer.byteLength - Memory.heapPointer);
+        // Memory.heapSize = Math.floor(Memory.allocated.buffer.byteLength / 0x10000);
+
         // if the most granular level of access will fit N entries
         // then the size of access is always N + N / 2 + N / 4 + N / 8 ...
         // so N * 2 - 1
-        const memoryEntries = Memory.heap.buffer.byteLength / MIN_MEMORY_BYTES;
+        const memoryEntries = Memory.heapSize / MIN_MEMORY_BYTES;
         if (Math.floor(memoryEntries) !== memoryEntries) {
             console.error('Cannot cleanly divide the memory into minimal chunks. You must allocate larger blocks of memory with each grow, or reduce the minimum memory block byte size. Or maybe the memory isn\'t initialized as a power of 2.');
             return;
@@ -459,9 +481,9 @@ const Memory = {
 
             // the first index into access is the old tree, so correct the new root node
             if (Memory.getAccessStateFromValue(Memory.access[1]) !== ACCESS_FREE) {
-                Memory.access[0] = Memory.createAccessValue(ACCESS_DIVIDED, Memory.heap.buffer.byteLength / 2);
+                Memory.access[0] = Memory.createAccessValue(ACCESS_DIVIDED, Memory.heapSize / 2);
             } else {
-                Memory.access[0] = Memory.createAccessValue(ACCESS_FREE, Memory.heap.buffer.byteLength);
+                Memory.access[0] = Memory.createAccessValue(ACCESS_FREE, Memory.heapSize);
             }
         }
     },
@@ -493,7 +515,7 @@ const std = {
     //     return count;
     // },
     'wasm_print': (pointer, length) => {
-        const bytes = new Uint8Array(Memory.heap.buffer, Number(pointer), Number(length));
+        const bytes = new Uint8Array(Memory.allocated.buffer, Number(pointer), Number(length));
         const string = new TextDecoder().decode(bytes);
         console.log('wasm_print ', string);
     },
@@ -504,7 +526,7 @@ const std = {
     //     Memory.free(pointer);
     // },
     'memset': (s, c, n) => {
-        const bytes = new Uint8Array(Memory.heap.buffer, Number(s), Number(n));
+        const bytes = new Uint8Array(Memory.allocated.buffer, Number(s), Number(n));
         bytes.fill(c);
         return s;
     },
@@ -521,29 +543,34 @@ const std = {
         return BigInt(Memory.alloc(Number(size)));
     },
     'realloc': (pointer, size) => {
+        if (!pointer) {
+            return BigInt(Memory.alloc(Number(size)));
+        }
         // TODO try not to move the content
         // TODO using typed array copy might be faster if I can guarantee itll never have to copy right to left
-        pointer = Number(pointer);
-        const oldSize = Memory.free(pointer);
+        // pointer = Number(pointer);
+        const oldSize = Memory.free(Number(pointer));
+        const newPointer = BigInt(Memory.alloc(Number(size)));
 
-        const newPointer = Memory.alloc(size);
+        console.log('freeing ', pointer);
+
         if (newPointer === pointer) {
             // no need to copy data, yay
-            return BigInt(newPointer);
+            return newPointer;
         } else if (newPointer <= pointer) {
             // copy left to right
             for (let i = 0; i < oldSize; i++) {
-                Memory.heap.buffer[newPointer + i] = Memory.heap.buffer[pointer + i];
+                Memory.allocated.buffer[newPointer + i] = Memory.allocated.buffer[pointer + i];
             }
 
-            return BigInt(newPointer);
+            return newPointer;
         } else {
             // copy right to left
             for (let i = oldSize - 1; i >= 0; i--) {
-                Memory.heap.buffer[newPointer + i] = Memory.heap.buffer[pointer + i];
+                Memory.allocated.buffer[newPointer + i] = Memory.allocated.buffer[pointer + i];
             }
 
-            return BigInt(newPointer);
+            return newPointer;
         }
     },
     'free': (pointer) => {
@@ -552,14 +579,25 @@ const std = {
     'memcpy': (dest, src, length) => {
         dest = Number(dest);
         src = Number(src);
+        const write = new Uint8Array(Memory.allocated.buffer);
         // TODO do this faster using typed array method
         for (let i = 0; i < length; i++) {
-            Memory.heap.buffer[dest + i] = Memory.heap.buffer[src + i];
+            write[dest + i] = write[src + i];
         }
         return BigInt(dest);
     },
     'EnterCriticalSection': () => {/*does nothing since we dont require thread sync, probably*/},
-    'WriteFile': (handle, buffer, buffer_length, written_result, overlapped) => {console.log('file ', buffer, buffer_length); return 0;},
+    'WriteFile': (handle, buffer, buffer_length, written_result, overlapped) => {
+        
+        const bytes = new Uint8Array(Memory.allocated.buffer, Number(buffer), Number(buffer_length));
+        const string = new TextDecoder().decode(bytes);
+        console.log('WriteFile ', string);
+
+        console.log(new Uint8Array(Memory.allocated.buffer, Number(buffer) - Number(buffer_length), Number(buffer_length) * 2));
+
+        console.log('file ', handle, buffer, buffer_length, written_result, overlapped);
+        return 0;
+    },
     'LeaveCriticalSection': () => {/*does nothing since we dont require thread sync, probably*/},
     'glCreateShader': (type) => {
         gl.createShader(type);

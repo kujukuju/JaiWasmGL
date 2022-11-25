@@ -27,8 +27,16 @@ build_wasm :: (base_name: string) {
     WASM6432_FILE := ifx OS == .WINDOWS then "wasm64232.exe" else "wasm64232";
     WASM6432_NAME := tprint("./3rd_party/%", WASM6432_FILE);
 
-    cmd("clang", "--target=wasm64", "-o", O_NAME, "-c", BC_NAME);
-    cmd("wasm-ld", "-m", "wasm64", "--no-entry", "--export-all", "--allow-undefined", O_NAME, "-o", "./wasm/main64.wasm");
+    // wasm stack is by default 64 kb so we should probably increase it
+    // also javascript wont set the heap size to >= 64 kb by default
+    // so subtract these values to get it extremely small, then add my own page to the heap in javascript
+    // this way we can continue increasing the heap by pages without worrying about wasted memory
+    STACK_SIZE :: 4194304 - 1024 * 12;
+
+    // --stack-first will move the stack memory to the start of the array so if you ever go over
+    // it will crash instead of starting to override globals in the adjacent memory
+    cmd("clang", "--target=wasm64", "-nostdlib", "-o", O_NAME, "-c", BC_NAME);
+    cmd("wasm-ld", "-m", "wasm64", "--no-entry", "--stack-first", "--export-all", "-z", tprint("stack-size=%", STACK_SIZE), "--allow-undefined", O_NAME, "-o", "./wasm/main64.wasm");
     cmd(WASM6432_NAME, "-o", "../public/wasm/main32.wasm", "./wasm/main64.wasm");
 }
 
@@ -86,11 +94,6 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
             if member.offset_into_constant_storage == -1 {
                 continue;
             }
-
-            // member_type :: << cast(*Type) *member.type;
-            // member_pointer: *v = << cast(*u64) replacements_storage[member.offset_into_constant_storage];
-            // member_data: *member_type;
-            // memcpy(*member_data, replacements_storage[member.offset_into_constant_storage], size_of(member_data));
             
             append(*builder, tprint("array_add(*replacement_list, cast(*Code_Procedure_Header) compiler_get_nodes(code_of(Bindings.Replacements.%)));\n", member.name));
         }
@@ -100,28 +103,6 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
 
     for replacement: replacement_list {
         assert(replacement.kind == .PROCEDURE_HEADER);
-    }
-
-    // TODO do this for everything in replacements
-    // print_code := code_of(Bindings.Replacements.print_to_builder);
-    // print_root := compiler_get_nodes(print_code);
-    // assert(print_root.kind == .PROCEDURE_HEADER);
-    // print_header := cast(*Code_Procedure_Header) print_root;
-    // print_body := print_header.body_or_null;
-
-    // print("header %\n", << print_header);
-    // print("body %\n", print_header.body_or_null);
-
-    make_false_literal :: () -> *Code_Literal {
-        Basic :: #import "Basic";
-        literal := Basic.New(Code_Literal);
-
-        literal.kind          = .LITERAL;
-        literal.value_type    = .FALSE;
-        // literal.value_flags   = .IS_A_NUMBER;
-        // literal._s64 = v;
-
-        return literal;
     }
 
     object_file_to_translate_to_wasm := "";
@@ -174,31 +155,6 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
                         compiler_modify_procedure(w, body);
                     }
                 }
-
-                // for typechecked.procedure_bodies {
-                //     if it.expression.body_flags & .ALREADY_MODIFIED {
-                //         continue;
-                //     }
-
-                //     contains_asm := false;
-                //     for it.subexpressions {
-                //         if it.kind == .ASM {
-                //             // NOTE: #asm blocks are not translatable to WASM, we need to remove them
-                //             compiler_report("ASM DETECTED!!!", make_location(it), .WARNING);
-                //             contains_asm = true;
-                //         }
-                //     }
-                //     // it already skips modified bodies, so if we previously found a replacement we don't have to worry
-                //     if contains_asm {
-                //         body := it.expression;
-                //         compiler_report(tprint("Removing the whole body of the function %. DON'T USE IT!!!", body.header.name),
-                //                         make_location(body),
-                //                         .WARNING);
-                //         new_statements: [..] *Code_Node;
-                //         body.block.statements = new_statements;
-                //         compiler_modify_procedure(w, body);
-                //     }
-                // }
 
             case .PHASE;
                 phase := cast(*Message_Phase) message;
