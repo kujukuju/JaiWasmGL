@@ -18,12 +18,21 @@ const EBADF = 9;
 // 16 mb
 const DEFAULT_HEAP = 0x1000000;
 
+if (DEFAULT_HEAP & (DEFAULT_HEAP - 1) !== 0) {
+    console.error('The default heap size must be a power of two.');
+}
+
 const Jai = {
     // TODO get rid of this if I can
     instance: null,
     context: null,
     gl: null,
     initialize: (canvas) => {
+        Jai.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        if (!Jai.gl) {
+            console.error('Could not initialize webgl context.');
+        }
+
         WebAssembly.instantiateStreaming(fetch('/wasm/main32.wasm'), {
             'env': make_environment(std, demo)
         }).then(wasm => {
@@ -39,7 +48,7 @@ const Jai = {
             Memory.allocated.grow(pages);
             Memory.rebuildAccess();
         
-            console.log(Jai.instance.exports.main);
+            // console.log(Jai.instance.exports.main);
             Jai.instance.exports.main(0, BigInt(0));
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat.
@@ -62,15 +71,12 @@ const Jai = {
                 }
             }
 
+            Jai.resize(window.innerWidth, window.innerHeight);
+
             // const update = find_name_by_regexp(w.instance.exports, "update");
         
             initialized();
         }).catch(console.error);
-
-        Jai.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-        if (!Jai.gl) {
-            console.error('Could not initialize webgl context.');
-        }
     },
 }
 
@@ -79,6 +85,7 @@ const Jai = {
 // if your program is for some reason allocating a ton of tiny blocks, this will need to be reduced
 // but that seems less likely than large blocks
 const MIN_MEMORY_BYTES = 32768;
+
 if (MIN_MEMORY_BYTES & (MIN_MEMORY_BYTES - 1) !== 0) {
     console.error('The minimum memory byte block size must be a power of two.');
 }
@@ -489,46 +496,49 @@ const Memory = {
     },
 };
 
-const std = {
-    // 'write': (fd, buf, count) => {
-    //     let log = undefined;
-    //     switch (fd) {
-    //         case 1: log = console.log;   break;
-    //         case 2: log = console.error; break;
-    //         default: {
-    //             console.error("write: Unsupported file descriptor "+fd);
-    //             return -EBADF;
-    //         }
-    //     }
-    //     const buffer = Jai.instance.exports.memory.buffer;
-    //     const bytes = new Uint8Array(buffer, Number(buf), Number(count));
-    //     let text = new TextDecoder().decode(bytes);
-    //     let index = text.indexOf('\n');
-    //     while (index >= 0) {
-    //         output_buffer += text.slice(0, index);
-    //         text = text.slice(index + 1);
-    //         log(output_buffer);
-    //         output = "";
-    //         index = text.indexOf('\n');
-    //     }
-    //     if (text.length > 0) output_buffer += text;
-    //     return count;
-    // },
-    'wasm_print': (pointer, length) => {
-        const bytes = new Uint8Array(Memory.allocated.buffer, Number(pointer), Number(length));
-        const string = new TextDecoder().decode(bytes);
-        console.log('wasm_print ', string);
+const Pointers = {
+    available: [],
+    // the first object should already exist because a lot of gl names use 0 as null and this uses indices as names
+    objects: [null],
+    availableCount: 0,
+    addPointerObject: (object) => {
+        if (Pointers.availableCount === 0) {
+            Pointers.objects.push(object);
+            return Pointers.objects.length - 1;
+        }
+
+        const index = Pointers.available[Pointers.availableCount - 1];
+        Pointers.availableCount -= 1;
+
+        Pointers.objects[index] = object;
+        return index;
     },
-    // 'wasm_alloc': (size) => {
-    //     return Memory.alloc(size);
-    // },
-    // 'wasm_free': (pointer) => {
-    //     Memory.free(pointer);
-    // },
-    'memset': (s, c, n) => {
-        const bytes = new Uint8Array(Memory.allocated.buffer, Number(s), Number(n));
-        bytes.fill(c);
-        return s;
+    freePointerObject: (pointer) => {
+        Pointers.available[Pointers.availableCount] = pointer;
+        Pointers.availableCount += 1;
+    },
+};
+
+const Helpers = {
+    writeData: (pointer, data) => {
+        if (Number.isInteger(data)) {
+            const ints = new Int32Array(Memory.allocated.buffer, Number(pointer), 1);
+            ints[0] = data;
+        } else if (data === true) {
+            const ints = new Int32Array(Memory.allocated.buffer, Number(pointer), 1);
+            ints[0] = 1;
+        } else if (data === false) {
+            const ints = new Int32Array(Memory.allocated.buffer, Number(pointer), 1);
+            ints[0] = 0;
+        }
+    },
+};
+
+const std = {
+    'memset': (dest, value, length) => {
+        const bytes = new Uint8Array(Memory.allocated.buffer, Number(dest), Number(length));
+        bytes.fill(value);
+        return dest;
     },
     'SetUnhandledExceptionFilter': value => BigInt(0),
     'SymSetOptions': value => 0,
@@ -577,108 +587,173 @@ const std = {
         Memory.free(Number(pointer));
     },
     'memcpy': (dest, src, length) => {
-        dest = Number(dest);
-        src = Number(src);
-        const write = new Uint8Array(Memory.allocated.buffer);
-        // TODO do this faster using typed array method
-        for (let i = 0; i < length; i++) {
-            write[dest + i] = write[src + i];
-        }
-        return BigInt(dest);
+        const write = new Uint8Array(Memory.allocated.buffer, Number(dest), Number(length));
+        const read = new Uint8Array(Memory.allocated.buffer, Number(src), Number(length));
+        write.set(read);
+        return dest;
     },
     'EnterCriticalSection': () => {/*does nothing since we dont require thread sync, probably*/},
     'WriteFile': (handle, buffer, buffer_length, written_result, overlapped) => {
-        
+        // TODO handle handle
+
         const bytes = new Uint8Array(Memory.allocated.buffer, Number(buffer), Number(buffer_length));
         const string = new TextDecoder().decode(bytes);
-        console.log('WriteFile ', string);
+        console.log(string);
 
-        console.log(new Uint8Array(Memory.allocated.buffer, Number(buffer) - Number(buffer_length), Number(buffer_length) * 2));
-
-        console.log('file ', handle, buffer, buffer_length, written_result, overlapped);
-        return 0;
+        return 1;
     },
     'LeaveCriticalSection': () => {/*does nothing since we dont require thread sync, probably*/},
     'glCreateShader': (type) => {
-        gl.createShader(type);
-        return 0;
+        const shader = Jai.gl.createShader(type);
+        const pointer = Pointers.addPointerObject(shader);
+        return pointer;
     },
     'glShaderSource': (shader, count, str, length) => {
-        console.log(shader, count, str, length);
-        gl.shaderSource(shader, str[0]);
+        shader = Pointers.objects[shader];
+        // TODO handle null terminated strings
+        // build the strings
+        let source = '';
+        const strPointerList = new BigUint64Array(Memory.allocated.buffer, Number(str), count);
+        const lengthList = new Uint32Array(Memory.allocated.buffer, Number(length), count);
+        for (let i = 0; i < count; i++) {
+            const strPointer = strPointerList[i];
+            const length = lengthList[i];
+
+            const bytes = new Uint8Array(Memory.allocated.buffer, Number(strPointer), length);
+            const string = new TextDecoder().decode(bytes);
+
+            source += string;
+        }
+
+        Jai.gl.shaderSource(shader, source);
     },
     'glCompileShader': (shader) => {
-        gl.compilerShader(shader);
+        shader = Pointers.objects[shader];
+        Jai.gl.compileShader(shader);
     },
     'glGetShaderiv': (shader, pname, params) => {
-        params[0] = gl.getShaderParameter(shader, pname);
+        shader = Pointers.objects[shader];
+        const data = Jai.gl.getShaderParameter(shader, pname);
+        Helpers.writeData(params, data);
+    },
+    'glGetShaderInfoLog': (shader, bufSize, length, infoLog) => {
+        shader = Pointers.objects[shader];
+        const message = Jai.gl.getShaderInfoLog(shader);
+        console.log('wahtever ', message); // TODO
     },
     'glCreateProgram': ()  => {
-        return gl.createProgram();
+        const program = Jai.gl.createProgram();
+        const pointer = Pointers.addPointerObject(program);
+        return pointer;
     },
     'glAttachShader': (program, shader) => {
-        gl.attachShader(prgram, shader);
+        program = Pointers.objects[program];
+        shader = Pointers.objects[shader];
+        Jai.gl.attachShader(program, shader);
     },
     'glLinkProgram': (program) => {
-        gl.linkProgram(program);
+        program = Pointers.objects[program];
+        Jai.gl.linkProgram(program);
     },
     'glGetProgramiv': (program, pname, params) => {
-        params[0] = gl.getProgramParameter(program, pname);
+        program = Pointers.objects[program];
+        const data = Jai.gl.getProgramParameter(program, pname);
+        Helpers.writeData(params, data);
     },
     'glDeleteShader': (shader) => {
-        gl.deleteShader(shader);
+        shader = Pointers.objects[shader];
+        Jai.gl.deleteShader(shader);
     },
     'glGenVertexArrays': (n, arrays) => {
-        // TODO assert in jai n must be 1
         // this is webgl2 only
-        arrays[0] = gl.createVertexArray();
+        console.log(arrays);
+        const arrayPointers = new Uint32Array(Memory.allocated.buffer, Number(arrays), n);
+        for (let i = 0; i < n; i++) {
+            const array = Jai.gl.createVertexArray();
+            const pointer = Pointers.addPointerObject(array);
+            arrayPointers[i] = pointer;
+        }
     },
     'glGenBuffers': (n, buffers) => {
-        // TODO assert in jai n must be 1
-        buffers[0] = gl.createBuffer();
+        const bufferPointers = new Uint32Array(Memory.allocated.buffer, Number(buffers), n);
+        for (let i = 0; i < n; i++) {
+            const buffer = Jai.gl.createBuffer();
+            const pointer = Pointers.addPointerObject(buffer);
+            bufferPointers[i] = pointer;
+            console.log('buffer pointer ', pointer);
+        }
     },
     'glBindVertexArray': (array) => {
-        gl.bindVertexArray(array);
+        if (array === 0) {
+            Jai.gl.bindVertexArray(null);
+        } else {
+            array = Pointers.objects[array];
+            Jai.gl.bindVertexArray(array);
+        }
     },
     'glBindBuffer': (target, buffer) => {
-        gl.bindBuffer(target, buffer);
+        if (buffer === 0) {
+            Jai.gl.bindBuffer(target, null);
+        } else {
+            console.log('binding ', buffer);
+            buffer = Pointers.objects[buffer];
+            Jai.gl.bindBuffer(target, buffer);
+        }
     },
     'glBufferData': (target, size, data, usage) => {
         // console.error('idk');
-        gl.bufferData(target, data, usage, 0);
-        // gl.bufferData(target, size, usage);
+        const bytes = new Uint8Array(Memory.allocated.buffer, Number(data), Number(size));
+        Jai.gl.bufferData(target, bytes, usage);
     },
     'glVertexAttribPointer': (index, size, type, normalized, stride, pointer) => {
-        gl.vertexAttribPointer(index, size, type, normalized, stride, 0);
+        console.log(index, size, type, normalized, stride, pointer);
+        Jai.gl.vertexAttribPointer(index, size, type, !!normalized, stride, Number(pointer));
     },
     'glEnableVertexAttribArray': (index) => {
-        gl.enableVertexAttribArray(index);
+        Jai.gl.enableVertexAttribArray(index);
     },
     'glClear': (mask) => {
-        gl.clear(mask);
+        Jai.gl.clear(mask);
     },
     'glClearColor': (red, green, blue, alpha) => {
-        gl.clearColor(red, green, blue, alpha);
+        Jai.gl.clearColor(red, green, blue, alpha);
     },
     'glUseProgram': (program) => {
-        gl.useProgram(program);
+        program = Pointers.objects[program];
+        Jai.gl.useProgram(program);
     },
     'glDrawElements': (mode, count, type, indices) => {
-        gl.drawElements(mode, count, type, indices);
+        Jai.gl.drawElements(mode, count, type, Number(indices));
     },
-    'glDeleteVertexArrays': (n, arrays) => {
-        // TODO in jai assert n is 1
-        gl.deleteVertexArray(array[0]);
-    },
-    'glDeleteBuffers': (n, buffers) => {
-        // TODO in jai assert n is 1
-        gl.deleteBuffer(buffers[0]);
-    },
-    'glDeleteProgram': (program) => {
-        gl.deleteProgram(program);
-    },
+    // 'glDeleteVertexArrays': (n, arrays) => {
+    //     // TODO in jai assert n is 1
+    //     Jai.gl.deleteVertexArray(array[0]);
+    // },
+    // 'glDeleteBuffers': (n, buffers) => {
+    //     // TODO in jai assert n is 1
+    //     Jai.gl.deleteBuffer(buffers[0]);
+    // },
+    // 'glDeleteProgram': (program) => {
+    //     Jai.gl.deleteProgram(program);
+    // },
     'glViewport': (x, y, width, height) => {
-        gl.viewport(x, y, width, height);
+        Jai.gl.viewport(x, y, width, height);
+    },
+    'glGetProgramInfoLog': (program, bufSize, length, infoLog) => {
+        program = Pointers.objects[program];
+        const message = Jai.gl.getProgramInfoLog(program);
+        console.log('wahtever ', message); // TODO
+    },
+    'glGetAttribLocation': (program, name) => {
+        program = Pointers.objects[program];
+        name = Number(name);
+        const bytes = new Uint8Array(Memory.allocated.buffer);
+        let string = '';
+        while (bytes[name] !== 0) {
+            string += String.fromCharCode(bytes[name]);
+            name += 1;
+        }
+        return Jai.gl.getAttribLocation(program, string);
     },
 };
 
