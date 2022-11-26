@@ -7,14 +7,14 @@ shaderProgram: u32;
 main :: () {
     set_context(*context);
 
-    vertexShaderSource :: #string DONE
+    vertexShaderSource: *u8 = #string DONE
     #version 300 es
     in vec3 aPos;
     void main() {
        gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
     }
     DONE
-    fragmentShaderSource :: #string DONE
+    fragmentShaderSource: *u8 = #string DONE
     #version 300 es
     precision mediump float;
     out vec4 FragColor;
@@ -27,9 +27,9 @@ main :: () {
     // ------------------------------------
     // vertex shader
     vertexShader: u32 = glCreateShader(GL_VERTEX_SHADER);
-    vertexShaderSourceData := vertexShaderSource.data;
-    vertexShaderSourceCount := cast(s32) vertexShaderSource.count;
-    glShaderSource(vertexShader, 1, *vertexShaderSourceData, *vertexShaderSourceCount);
+    // vertexShaderSourceData := vertexShaderSource.data;
+    // vertexShaderSourceCount := cast(s32) vertexShaderSource.count;
+    glShaderSource(vertexShader, 1, *vertexShaderSource, null);
     glCompileShader(vertexShader);
     // check for shader compile errors
     success: s32;
@@ -44,9 +44,7 @@ main :: () {
     }
     // fragment shader
     fragmentShader: u32 = glCreateShader(GL_FRAGMENT_SHADER);
-    fragmentShaderSourceData := fragmentShaderSource.data;
-    fragmentShaderSourceCount := cast(s32) fragmentShaderSource.count;
-    glShaderSource(fragmentShader, 1, *fragmentShaderSourceData, *fragmentShaderSourceCount);
+    glShaderSource(fragmentShader, 1, *fragmentShaderSource, null);
     glCompileShader(fragmentShader);
     // check for shader compile errors
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, *success);

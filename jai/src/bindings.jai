@@ -1,67 +1,31 @@
-WasmBindings :: struct #type_info_procedures_are_void_pointers {
-    set_context :: (c: *Context) #foreign #compiler;
-    // wasm_alloc :: (size: int) -> *void {
-    //     wasm_alloc_ :: (size: u32) -> u32 #foreign #compiler "wasm_alloc";
-    //     return xx wasm_alloc_(xx size);
-    // }
-    // wasm_free :: (pointer: *void) {
-    //     wasm_free_ :: (pointer: u32) #foreign #compiler "wasm_free";
-    //     wasm_free_(xx pointer);
-    // }
-    glCreateShader :: (type: GLenum) -> GLuint #foreign #compiler;
-    glShaderSource :: (shader: GLuint, count: GLsizei, str: **GLchar, length: *GLint) #foreign #compiler;
-    glCompileShader :: (shader: GLuint) #foreign #compiler;
-    glGetShaderiv :: (shader: GLuint, pname: GLenum, params: *GLint) #foreign #compiler;
-    glGetShaderInfoLog :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign #compiler;
-    glCreateProgram :: () -> GLuint #foreign #compiler;
-    glAttachShader :: (program: GLuint, shader: GLuint) #foreign #compiler;
-    glLinkProgram :: (program: GLuint) #foreign #compiler;
-    glGetProgramiv :: (program: GLuint, pname: GLenum, params: *GLint) #foreign #compiler;
-    glDeleteShader :: (shader: GLuint) #foreign #compiler;
-    glGenVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign #compiler;
-    glGenBuffers :: (n: GLsizei, buffers: *GLuint) #foreign #compiler;
-    glBindVertexArray :: (array: GLuint) #foreign #compiler;
-    glBindBuffer :: (target: GLenum, buffer: GLuint) #foreign #compiler;
-    glBufferData :: (target: GLenum, size: GLsizeiptr, data: *void, usage: GLenum) #foreign #compiler;
-    glVertexAttribPointer :: (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: *void) #foreign #compiler;
-    glEnableVertexAttribArray :: (index: GLuint) #foreign #compiler;
-    glClear :: (mask: GLbitfield) #foreign #compiler;
-    glClearColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign #compiler;
-    glUseProgram :: (program: GLuint) #foreign #compiler;
-    glDrawElements :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void) #foreign #compiler;
-    glDeleteVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign #compiler;
-    glDeleteBuffers :: (n: GLsizei, buffers: *GLuint) #foreign #compiler;
-    glDeleteProgram :: (program: GLuint) #foreign #compiler;
-    glViewport :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign #compiler;
-    glGetProgramInfoLog :: (program: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign #compiler;
-    glGetAttribLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign #compiler;
-}
-
-bindings: WasmBindings;
-using bindings;
-
-// TODO just import an entire opengl file for this shit
-GLenum :: u32;
-GLuint :: u32;
-GLsizei :: u32;
-GLchar :: u8;
-GLint :: s32;
-GLsizeiptr :: s64;
-GLboolean :: bool;
-GLbitfield :: u32;
-GLfloat :: float32;
-GL_COMPILE_STATUS :: 0x8B81;
-GL_FRAGMENT_SHADER :: 0x8B30;
-GL_VERTEX_SHADER :: 0x8B31;
-GL_STATIC_DRAW :: 0x88E4;
-GL_FLOAT :: 0x1406;
-GL_FALSE :: false;
-GL_ARRAY_BUFFER :: 0x8892;
-GL_ELEMENT_ARRAY_BUFFER :: 0x8893;
-GL_COLOR_BUFFER_BIT :: 0x00004000;
-GL_LINK_STATUS :: 0x8B82;
-GL_TRIANGLES :: 0x0004;
-GL_UNSIGNED_INT :: 0x1405;
+set_context :: (c: *Context) #foreign #compiler;
+// glCreateShader :: (type: GLenum) -> GLuint #foreign #compiler;
+// glShaderSource :: (shader: GLuint, count: GLsizei, str: **GLchar, length: *GLint) #foreign #compiler;
+// glCompileShader :: (shader: GLuint) #foreign #compiler;
+// glGetShaderiv :: (shader: GLuint, pname: GLenum, params: *GLint) #foreign #compiler;
+// glGetShaderInfoLog :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign #compiler;
+// glCreateProgram :: () -> GLuint #foreign #compiler;
+// glAttachShader :: (program: GLuint, shader: GLuint) #foreign #compiler;
+// glLinkProgram :: (program: GLuint) #foreign #compiler;
+// glGetProgramiv :: (program: GLuint, pname: GLenum, params: *GLint) #foreign #compiler;
+// glDeleteShader :: (shader: GLuint) #foreign #compiler;
+// glGenVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign #compiler;
+// glGenBuffers :: (n: GLsizei, buffers: *GLuint) #foreign #compiler;
+// glBindVertexArray :: (array: GLuint) #foreign #compiler;
+// glBindBuffer :: (target: GLenum, buffer: GLuint) #foreign #compiler;
+// glBufferData :: (target: GLenum, size: GLsizeiptr, data: *void, usage: GLenum) #foreign #compiler;
+// glVertexAttribPointer :: (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: *void) #foreign #compiler;
+// glEnableVertexAttribArray :: (index: GLuint) #foreign #compiler;
+// glClear :: (mask: GLbitfield) #foreign #compiler;
+// glClearColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign #compiler;
+// glUseProgram :: (program: GLuint) #foreign #compiler;
+// glDrawElements :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void) #foreign #compiler;
+// glDeleteVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign #compiler;
+// glDeleteBuffers :: (n: GLsizei, buffers: *GLuint) #foreign #compiler;
+// glDeleteProgram :: (program: GLuint) #foreign #compiler;
+// glViewport :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign #compiler;
+// glGetProgramInfoLog :: (program: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign #compiler;
+// glGetAttribLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign #compiler;
 
 Replacements :: struct {
     #import "Basic";
