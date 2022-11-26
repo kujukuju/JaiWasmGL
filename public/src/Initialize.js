@@ -4,6 +4,6 @@ window.addEventListener('load', () => {
 
 const initialized = () => {
     Renderer.initialize();
-    Loop.initialize();
+    Loop.loop();
 };
 

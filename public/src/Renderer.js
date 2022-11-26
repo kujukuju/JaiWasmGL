@@ -3,9 +3,8 @@ class Renderer {
         window.addEventListener('resize', () => {
             Renderer.resize();
         });
-        
-        document.getElementById('canvas').width = window.innerWidth;
-        document.getElementById('canvas').height = window.innerHeight;
+
+        Renderer.resize();
     }
 
     static resize() {

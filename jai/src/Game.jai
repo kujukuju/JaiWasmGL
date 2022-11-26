@@ -27,8 +27,6 @@ main :: () {
     // ------------------------------------
     // vertex shader
     vertexShader: u32 = glCreateShader(GL_VERTEX_SHADER);
-    // vertexShaderSourceData := vertexShaderSource.data;
-    // vertexShaderSourceCount := cast(s32) vertexShaderSource.count;
     glShaderSource(vertexShader, 1, *vertexShaderSource, null);
     glCompileShader(vertexShader);
     // check for shader compile errors
@@ -72,11 +70,9 @@ main :: () {
          0.0,  0.5, 0.0,  // top right
          0.5, -0.5, 0.0,  // bottom right
         -0.5, -0.5, 0.0,  // bottom left
-        0.0,  0.5, 0.0,  // top left 
     ];
     indices: [] u32 = .[  // note that we start from 0!
-        0, 1, 3,  // first Triangle
-        1, 2, 3,  // second Triangle
+        0, 2, 1,  // second Triangle
     ];
     glGenVertexArrays(1, *VAO);
     glGenBuffers(1, *VBO);
@@ -88,10 +84,7 @@ main :: () {
     glBufferData(GL_ARRAY_BUFFER, size_of(float) * vertices.count, vertices.data, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    // print("size %\n", size_of(type_of(vertices)));
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_of(u32) * indices.count, indices.data, GL_STATIC_DRAW);
-
-    // print("LOCATION %\n", glGetAttribLocation(shaderProgram, "aPos"));
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * size_of(float), cast(*void) 0);
     glEnableVertexAttribArray(0);
@@ -107,20 +100,6 @@ main :: () {
     glBindVertexArray(0);
 }
 
-// print_stack_trace :: () {
-//     node := context.stack_trace;
-//     while node {
-//         // There are two different line numbers available.
-//         // node.info.location has a line number, but this is the location of
-//         // the start of the procedure. That may be useful in some cases, but often
-//         // what we really want is the line number of the procedure call, which is
-//         // stored in node.line_number. That's what we print in this case.
-        
-//         if node.info print("'%' at %:% ; call depth %, hash 0x%\n", node.info.name, node.info.location.fully_pathed_filename, node.line_number, node.call_depth, formatInt(node.hash, base=16));
-//         node = node.next;
-//     }
-// }
-
 update :: () {
     glClearColor(0.2, 0.3, 0.3, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -129,7 +108,7 @@ update :: () {
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     //glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, null);
 }
 
 resize :: (width: s32, height: s32) {
@@ -137,5 +116,3 @@ resize :: (width: s32, height: s32) {
 }
 
 #import "Basic";
-
-// TODO compile time replace some functions, such as print, with js binded versions
