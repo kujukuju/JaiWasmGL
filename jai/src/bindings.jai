@@ -1,31 +1,5 @@
+
 set_context :: (c: *Context) #foreign #compiler;
-// glCreateShader :: (type: GLenum) -> GLuint #foreign #compiler;
-// glShaderSource :: (shader: GLuint, count: GLsizei, str: **GLchar, length: *GLint) #foreign #compiler;
-// glCompileShader :: (shader: GLuint) #foreign #compiler;
-// glGetShaderiv :: (shader: GLuint, pname: GLenum, params: *GLint) #foreign #compiler;
-// glGetShaderInfoLog :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign #compiler;
-// glCreateProgram :: () -> GLuint #foreign #compiler;
-// glAttachShader :: (program: GLuint, shader: GLuint) #foreign #compiler;
-// glLinkProgram :: (program: GLuint) #foreign #compiler;
-// glGetProgramiv :: (program: GLuint, pname: GLenum, params: *GLint) #foreign #compiler;
-// glDeleteShader :: (shader: GLuint) #foreign #compiler;
-// glGenVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign #compiler;
-// glGenBuffers :: (n: GLsizei, buffers: *GLuint) #foreign #compiler;
-// glBindVertexArray :: (array: GLuint) #foreign #compiler;
-// glBindBuffer :: (target: GLenum, buffer: GLuint) #foreign #compiler;
-// glBufferData :: (target: GLenum, size: GLsizeiptr, data: *void, usage: GLenum) #foreign #compiler;
-// glVertexAttribPointer :: (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: *void) #foreign #compiler;
-// glEnableVertexAttribArray :: (index: GLuint) #foreign #compiler;
-// glClear :: (mask: GLbitfield) #foreign #compiler;
-// glClearColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign #compiler;
-// glUseProgram :: (program: GLuint) #foreign #compiler;
-// glDrawElements :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void) #foreign #compiler;
-// glDeleteVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign #compiler;
-// glDeleteBuffers :: (n: GLsizei, buffers: *GLuint) #foreign #compiler;
-// glDeleteProgram :: (program: GLuint) #foreign #compiler;
-// glViewport :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign #compiler;
-// glGetProgramInfoLog :: (program: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign #compiler;
-// glGetAttribLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign #compiler;
 
 Replacements :: struct {
     #import "Basic";
@@ -74,7 +48,6 @@ Replacements :: struct {
                     }
                 }
             }
-
 
             if value < 0 {
                 if context.print_style.log_runtime_errors {

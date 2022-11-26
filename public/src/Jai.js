@@ -19,6 +19,7 @@ if (MIN_MEMORY_BYTES & (MIN_MEMORY_BYTES - 1) !== 0) {
     console.error('The minimum memory byte block size must be a power of two.');
 }
 
+// methods get imported into this struct
 const Jai = {
     instance: null,
     context: null,
@@ -28,6 +29,8 @@ const Jai = {
         if (!Jai.gl) {
             console.error('Could not initialize webgl context.');
         }
+
+        // TODO deal with the context being lost gl.isContextLost
 
         WebAssembly.instantiateStreaming(fetch('/wasm/main32.wasm'), {
             'env': new Proxy(exported, {
@@ -58,12 +61,13 @@ const Jai = {
 
             for (const name in Jai.instance.exports) {
                 if (validRegex.test(name)) {
+                    // this blanket split affects things that arent appended with jibberish but I'm not sure why some methods have jibberish and others dont
                     const nameParts = name.split('_');
                     nameParts.length -= 1;
                     const validName = nameParts.join('_');
                     
                     if (Jai[validName]) {
-                        console.warn('Jai binding already exists. ', validName, Jai[validName]);
+                        console.warn('Jai binding already exists. ', validName, name, Jai[validName]);
                         continue;
                     }
     
@@ -413,12 +417,11 @@ const Memory = {
     rebuildAccess: () => {
         Memory.heapPointer = Number(Jai.instance.exports.__heap_base.value);
         Memory.heapSize = Memory.previousPowerOfTwo(Memory.allocated.buffer.byteLength - Memory.heapPointer);
-        Helpers.heap = Memory.allocated.buffer;
-        Helpers.u8 = new Uint8Array(Helpers.heap);
-        Helpers.u32 = new Uint32Array(Helpers.heap);
-        Helpers.s32 = new Int32Array(Helpers.heap);
-        Helpers.u64 = new BigUint64Array(Helpers.heap);
-        Helpers.s64 = new BigInt64Array(Helpers.heap);
+        Helpers.u8 = new Uint8Array(Memory.allocated.buffer);
+        Helpers.u32 = new Uint32Array(Memory.allocated.buffer);
+        Helpers.s32 = new Int32Array(Memory.allocated.buffer);
+        Helpers.u64 = new BigUint64Array(Memory.allocated.buffer);
+        Helpers.s64 = new BigInt64Array(Memory.allocated.buffer);
 
         // if the most granular level of access will fit N entries
         // then the size of access is always N + N / 2 + N / 4 + N / 8 ...
@@ -493,7 +496,6 @@ const Names = {
 };
 
 const Helpers = {
-    heap: null,
     u8: null,
     u32: null,
     s32: null,
@@ -530,6 +532,9 @@ const Helpers = {
         return length;
     },
 };
+
+// the goal is to avoid memory allocations and new objects in js at all costs
+// gc frame drops and stutters are probably harder to deal with than slower performance
 
 const exported = {
     memset: (dest, value, length) => {
@@ -595,12 +600,379 @@ const exported = {
         return 1;
     },
     LeaveCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
-    glCreateShader: (type) => {
+    // opengl
+    glAttachShader: (program /*GLuint*/, shader /*GLuint*/) => {
+        program = Names.objects[program];
+        shader = Names.objects[shader];
+        Jai.gl.attachShader(program, shader);
+    },
+    glBindAttribLocation: (program /*GLuint*/, index /*GLuint*/, name /**GLchar*/) => {
+        console.error('Not implemented.');
+    },
+    glBindBuffer: (target /*GLenum*/, buffer /*GLuint*/) => {
+        if (buffer === 0) {
+            Jai.gl.bindBuffer(target, null);
+        } else {
+            buffer = Names.objects[buffer];
+            Jai.gl.bindBuffer(target, buffer);
+        }
+    },
+    glBindFramebuffer: (target /*GLenum*/, framebuffer /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBindRenderbuffer: (target /*GLenum*/, renderbuffer /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBindTexture: (target /*GLenum*/, texture /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBlendColor: (red /*GLfloat*/, green /*GLfloat*/, blue /*GLfloat*/, alpha /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glBlendEquation: (mode /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glBlendEquationSeparate: (modeRGB /*GLenum*/, modeAlpha /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glBlendFunc: (sfactor /*GLenum*/, dfactor /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glBlendFuncSeparate: (sfactorRGB /*GLenum*/, dfactorRGB /*GLenum*/, sfactorAlpha /*GLenum*/, dfactorAlpha /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glBufferData: (target /*GLenum*/, size /*GLsizeiptr*/, data /**void*/, usage /*GLenum*/) => {
+        const bytes = new Uint8Array(Memory.allocated.buffer, Number(data), Number(size));
+        Jai.gl.bufferData(target, bytes, usage);
+    },
+    glBufferSubData: (target /*GLenum*/, offset /*GLintptr*/, size /*GLsizeiptr*/, data /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glCheckFramebufferStatus: (target /*GLenum*/) => /*GLenum*/ {
+        console.error('Not implemented.');
+    },
+    glClear: (mask /*GLbitfield*/) => {
+        Jai.gl.clear(mask);
+    },
+    glClearColor: (red /*GLfloat*/, green /*GLfloat*/, blue /*GLfloat*/, alpha /*GLfloat*/) => {
+        Jai.gl.clearColor(red, green, blue, alpha);
+    },
+    glClearDepth: (depth /*GLdouble*/) => {
+        console.error('Not implemented.');
+    },
+    glClearStencil: (s /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glColorMask: (red /*GLboolean*/, green /*GLboolean*/, blue /*GLboolean*/, alpha /*GLboolean*/) => {
+        console.error('Not implemented.');
+    },
+    glCommit: () => {
+        console.error('Not implemented.');
+    },
+    glCompileShader: (shader /*GLuint*/) => {
+        shader = Names.objects[shader];
+        Jai.gl.compileShader(shader);
+    },
+    glCompressedTexImage2D: (target /*GLenum*/, level /*GLint*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/, border /*GLint*/, imageSize /*GLsizei*/, data /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glCompressedTexImage3D: (target /*GLenum*/, level /*GLint*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/, depth /*GLsizei*/, border /*GLint*/, imageSize /*GLsizei*/, data /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glCompressedTexSubImage2D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, format /*GLenum*/, imageSize /*GLsizei*/, data /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glCopyTexImage2D: (target /*GLenum*/, level /*GLint*/, internalformat /*GLenum*/, x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, border /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glCopyTexSubImage2D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glGenBuffers: (n /*GLsizei*/, buffers /**GLuint*/) => {
+        buffers = Number(buffers);
+        for (let i = 0; i < n; i++) {
+            const buffer = Jai.gl.createBuffer();
+            const pointer = Names.addPointerObject(buffer);
+            Helpers.u32[buffers / 4 + i] = pointer;
+        }
+    }, // glCreateBuffer
+    glGenFramebuffers: (n /*GLsizei*/, framebuffers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glCreateFramebuffer
+    glCreateProgram: () => /*GLuint*/ {
+        const program = Jai.gl.createProgram();
+        return Names.addPointerObject(program);
+    },
+    glCreateRenderbuffers: (n /*GLsizei*/, renderbuffers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glCreateRenderbuffer
+    glCreateShader: (type /*GLenum*/) => /*GLuint*/ {
         const shader = Jai.gl.createShader(type);
         const pointer = Names.addPointerObject(shader);
         return pointer;
     },
-    glShaderSource: (shader, count, str, length) => {
+    glCreateTextures: (target /*GLenum*/, n /*GLsizei*/, textures /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glCreateTexture
+    glCullFace: (mode /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glDeleteBuffers: (n /*GLsizei*/, buffers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteBuffer
+    glDeleteFramebuffers: (n /*GLsizei*/, framebuffers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteFramebuffer
+    glDeleteProgram: (program /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glDeleteRenderbuffers: (n /*GLsizei*/, renderbuffers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteRenderbuffer
+    glDeleteShader: (shader /*GLuint*/) => {
+        shader = Names.objects[shader];
+        Jai.gl.deleteShader(shader);
+    },
+    glDeleteTextures: (n /*GLsizei*/, textures /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteTexture
+    glDepthFunc: (func /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glDepthMask: (flag /*GLboolean*/) => {
+        console.error('Not implemented.');
+    },
+    glDepthRange: (near /*GLdouble*/, far /*GLdouble*/) => {
+        console.error('Not implemented.');
+    },
+    glDetachShader: (program /*GLuint*/, shader /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glDisable: (cap /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glDisableVertexAttribArray: (index /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glDrawArrays: (mode /*GLenum*/, first /*GLint*/, count /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glDrawElements: (mode /*GLenum*/, count /*GLsizei*/, type /*GLenum*/, indices /**void*/) => {
+        Jai.gl.drawElements(mode, count, type, Number(indices));
+    },
+    glEnable: (cap /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glEnableVertexAttribArray: (index /*GLuint*/) => {
+        Jai.gl.enableVertexAttribArray(index);
+    },
+    glFinish: () => {
+        console.error('Not implemented.');
+    },
+    glFlush: () => {
+        console.error('Not implemented.');
+    },
+    glFramebufferRenderbuffer: (target /*GLenum*/, attachment /*GLenum*/, renderbuffertarget /*GLenum*/, renderbuffer /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glFramebufferTexture2D: (target /*GLenum*/, attachment /*GLenum*/, textarget /*GLenum*/, texture /*GLuint*/, level /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glFrontFace: (mode /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glGenerateMipmap: (target /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glGetActiveAttrib: (program /*GLuint*/, index /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, size /**GLint*/, type /**GLenum*/, name /**GLchar*/) => {
+        console.error('Not implemented.');
+    },
+    glGetActiveUniform: (program /*GLuint*/, index /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, size /**GLint*/, type /**GLenum*/, name /**GLchar*/) => {
+        console.error('Not implemented.');
+    },
+    glGetAttachedShaders: (program /*GLuint*/, maxCount /*GLsizei*/, count /**GLsizei*/, shaders /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glGetAttribLocation: (program /*GLuint*/, name /**GLchar*/) => /*GLint*/ {
+        program = Names.objects[program];
+        name = Number(name);
+        const bytes = new Uint8Array(Memory.allocated.buffer);
+        let string = '';
+        while (bytes[name] !== 0) {
+            string += String.fromCharCode(bytes[name]);
+            name += 1;
+        }
+        return Jai.gl.getAttribLocation(program, string);
+    },
+    glGetBufferParameteriv: (target /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetBufferParameter
+    glGetContextAttributes: () => /*GLint*/ {
+        console.error('Not implemented.');
+    },
+    glGetError: () => /*GLenum*/ {
+        console.error('Not implemented.');
+    },
+    glGetExtension: (name /**GLchar*/, length /*GLsizei*/) => /*GLint*/ {
+        console.error('Not implemented.');
+    },
+    glGetFramebufferAttachmentParameteriv: (target /*GLenum*/, attachment /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetFramebufferAttachmentParameter
+    glGetBooleanv: (pname /*GLenum*/, data /**GLboolean*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetDoublev: (pname /*GLenum*/, data /**GLdouble*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetFloatv: (pname /*GLenum*/, data /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetIntegerv: (pname /*GLenum*/, data /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetString: (name /*GLenum*/) => /**GLubyte*/ {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetInteger64v: (pname /*GLenum*/, data /**GLint64*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetBooleani_v: (target /*GLenum*/, index /*GLuint*/, data /**GLboolean*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetIntegeri_v: (target /*GLenum*/, index /*GLuint*/, data /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetFloati_v: (target /*GLenum*/, index /*GLuint*/, data /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetDoublei_v: (target /*GLenum*/, index /*GLuint*/, data /**GLdouble*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetInteger64i_v: (target /*GLenum*/, index /*GLuint*/, data /**GLint64*/) => {
+        console.error('Not implemented.');
+    }, // glGetParameter
+    glGetProgramInfoLog: (program /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, infoLog /**GLchar*/) => {
+        program = Names.objects[program];
+        const message = Jai.gl.getProgramInfoLog(program);
+        const written = Helpers.writeString(Number(infoLog), message, bufSize);
+        if (length) {
+            Helpers.u32[Number(length) / 4] = written;
+        }
+    },
+    glGetProgramiv: (program /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        program = Names.objects[program];
+        const data = Jai.gl.getProgramParameter(program, pname);
+        Helpers.writeData(Number(params), data);
+    }, // glGetProgramParameter
+    glGetRenderbufferParameteriv: (target /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetRenderbufferParameter
+    glGetShaderInfoLog: (shader /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, infoLog /**GLchar*/) => {
+        shader = Names.objects[shader];
+        const message = Jai.gl.getShaderInfoLog(shader);
+        const written = Helpers.writeString(Number(infoLog), message, bufSize);
+        if (length) {
+            Helpers.u32[Number(length) / 4] = written;
+        }
+    },
+    glGetShaderiv: (shader /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        shader = Names.objects[shader];
+        const data = Jai.gl.getShaderParameter(shader, pname);
+        Helpers.writeData(Number(params), data);
+    }, // getShaderParameter
+    glGetShaderPrecisionFormat: (shadertype /*GLenum*/, precisiontype /*GLenum*/, range /**GLint*/, precision /**GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glGetShaderSource: (shader /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, source /**GLchar*/) => {
+        console.error('Not implemented.');
+    },
+    glGetSupportedExtensions: (names /***GLchar*/, lengths /**GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glGetTexParameterfv: (target /*GLenum*/, pname /*GLenum*/, params /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glGetTexParameter
+    glGetTexParameteriv: (target /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetTexParameter
+    glGetUniformfv: (program /*GLuint*/, location /*GLint*/, params /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glGetUniform
+    glGetUniformiv: (program /*GLuint*/, location /*GLint*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetUniform
+    glGetUniformLocation: (program /*GLuint*/, name /**GLchar*/) => /*GLint*/ {
+        console.error('Not implemented.');
+    },
+    glGetVertexAttribdv: (index /*GLuint*/, pname /*GLenum*/, params /**GLdouble*/) => {
+        console.error('Not implemented.');
+    }, // glGetVertexAttrib
+    glGetVertexAttribfv: (index /*GLuint*/, pname /*GLenum*/, params /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glGetVertexAttrib
+    glGetVertexAttribiv: (index /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetVertexAttrib
+    glGetVertexAttribPointerv: (index /*GLuint*/, pname /*GLenum*/, pointer /***void*/) => {
+        console.error('Not implemented.');
+    }, // glGetVertexAttribOffset
+    glHint: (target /*GLenum*/, mode /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glIsBuffer: (buffer /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsContextLost: () => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsEnabled: (cap /*GLenum*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsFramebuffer: (framebuffer /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsProgram: (program /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsRenderbuffer: (renderbuffer /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsShader: (shader /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsTexture: (texture /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glLineWidth: (width /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glLinkProgram: (program /*GLuint*/) => {
+        program = Names.objects[program];
+        Jai.gl.linkProgram(program);
+    },
+    glMakeXRCompatible: () => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glPixelStorei: (pname /*GLenum*/, param /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glPolygonOffset: (factor /*GLfloat*/, units /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glReadPixels: (x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glRenderbufferStorage: (target /*GLenum*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glSampleCoverage: (value /*GLfloat*/, invert /*GLboolean*/) => {
+        console.error('Not implemented.');
+    },
+    glScissor: (x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glShaderSource: (shader /*GLuint*/, count /*GLsizei*/, str /***GLchar*/, length /**GLint*/) => {
         shader = Names.objects[shader];
 
         // build the strings
@@ -622,63 +994,149 @@ const exported = {
 
         Jai.gl.shaderSource(shader, source);
     },
-    glCompileShader: (shader) => {
-        shader = Names.objects[shader];
-        Jai.gl.compileShader(shader);
+    glStencilFunc: (func /*GLenum*/, ref /*GLint*/, mask /*GLuint*/) => {
+        console.error('Not implemented.');
     },
-    glGetShaderiv: (shader, pname, params) => {
-        shader = Names.objects[shader];
-        const data = Jai.gl.getShaderParameter(shader, pname);
-        Helpers.writeData(Number(params), data);
+    glStencilFuncSeparate: (face /*GLenum*/, func /*GLenum*/, ref /*GLint*/, mask /*GLuint*/) => {
+        console.error('Not implemented.');
     },
-    glGetShaderInfoLog: (shader, bufSize, length, infoLog) => {
-        shader = Names.objects[shader];
-        const message = Jai.gl.getShaderInfoLog(shader);
-        const written = Helpers.writeString(Number(infoLog), message, bufSize);
-        if (length) {
-            Helpers.u32[Number(length) / 4] = written;
-        }
+    glStencilMask: (mask /*GLuint*/) => {
+        console.error('Not implemented.');
     },
-    glCreateProgram: ()  => {
-        const program = Jai.gl.createProgram();
-        return Names.addPointerObject(program);
+    glStencilMaskSeparate: (face /*GLenum*/, mask /*GLuint*/) => {
+        console.error('Not implemented.');
     },
-    glAttachShader: (program, shader) => {
+    glStencilOp: (fail /*GLenum*/, zfail /*GLenum*/, zpass /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glStencilOpSeparate: (face /*GLenum*/, sfail /*GLenum*/, dpfail /*GLenum*/, dppass /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glTexImage2D: (target /*GLenum*/, level /*GLint*/, internalformat /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, border /*GLint*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glTexParameterf: (target /*GLenum*/, pname /*GLenum*/, param /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glTexParameteri: (target /*GLenum*/, pname /*GLenum*/, param /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glTexSubImage2D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform1f: (location /*GLint*/, v0 /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform1fv: (location /*GLint*/, count /*GLsizei*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform1i: (location /*GLint*/, v0 /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform1iv: (location /*GLint*/, count /*GLsizei*/, value /**GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform2f: (location /*GLint*/, v0 /*GLfloat*/, v1 /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform2fv: (location /*GLint*/, count /*GLsizei*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform2i: (location /*GLint*/, v0 /*GLint*/, v1 /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform2iv: (location /*GLint*/, count /*GLsizei*/, value /**GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform3f: (location /*GLint*/, v0 /*GLfloat*/, v1 /*GLfloat*/, v2 /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform3fv: (location /*GLint*/, count /*GLsizei*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform3i: (location /*GLint*/, v0 /*GLint*/, v1 /*GLint*/, v2 /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform3iv: (location /*GLint*/, count /*GLsizei*/, value /**GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform4f: (location /*GLint*/, v0 /*GLfloat*/, v1 /*GLfloat*/, v2 /*GLfloat*/, v3 /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform4fv: (location /*GLint*/, count /*GLsizei*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform4i: (location /*GLint*/, v0 /*GLint*/, v1 /*GLint*/, v2 /*GLint*/, v3 /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform4iv: (location /*GLint*/, count /*GLsizei*/, value /**GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix2fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix3fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix4fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUseProgram: (program /*GLuint*/) => {
         program = Names.objects[program];
-        shader = Names.objects[shader];
-        Jai.gl.attachShader(program, shader);
+        Jai.gl.useProgram(program);
     },
-    glLinkProgram: (program) => {
-        program = Names.objects[program];
-        Jai.gl.linkProgram(program);
+    glValidateProgram: (program /*GLuint*/) => {
+        console.error('Not implemented.');
     },
-    glGetProgramiv: (program, pname, params) => {
-        program = Names.objects[program];
-        const data = Jai.gl.getProgramParameter(program, pname);
-        Helpers.writeData(Number(params), data);
+    glVertexAttrib1f: (index /*GLuint*/, x /*GLfloat*/) => {
+        console.error('Not implemented.');
     },
-    glDeleteShader: (shader) => {
-        shader = Names.objects[shader];
-        Jai.gl.deleteShader(shader);
+    glVertexAttrib2f: (index /*GLuint*/, x /*GLfloat*/, y /*GLfloat*/) => {
+        console.error('Not implemented.');
     },
-    glGenVertexArrays: (n, arrays) => {
-        // this is webgl2 only
-        const arrayNames = new Uint32Array(Memory.allocated.buffer, Number(arrays), n);
-        for (let i = 0; i < n; i++) {
-            const array = Jai.gl.createVertexArray();
-            const pointer = Names.addPointerObject(array);
-            arrayNames[i] = pointer;
-        }
+    glVertexAttrib3f: (index /*GLuint*/, x /*GLfloat*/, y /*GLfloat*/, z /*GLfloat*/) => {
+        console.error('Not implemented.');
     },
-    glGenBuffers: (n, buffers) => {
-        const bufferNames = new Uint32Array(Memory.allocated.buffer, Number(buffers), n);
-        for (let i = 0; i < n; i++) {
-            const buffer = Jai.gl.createBuffer();
-            const pointer = Names.addPointerObject(buffer);
-            bufferNames[i] = pointer;
-        }
+    glVertexAttrib4f: (index /*GLuint*/, x /*GLfloat*/, y /*GLfloat*/, z /*GLfloat*/, w /*GLfloat*/) => {
+        console.error('Not implemented.');
     },
-    glBindVertexArray: (array) => {
+    glVertexAttrib1fv: (index /*GLuint*/, v /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttrib2fv: (index /*GLuint*/, v /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttrib3fv: (index /*GLuint*/, v /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttrib4fv: (index /*GLuint*/, v /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribPointer: (index /*GLuint*/, size /*GLint*/, type /*GLenum*/, normalized /*GLboolean*/, stride /*GLsizei*/, pointer /**void*/) => {
+        Jai.gl.vertexAttribPointer(index, size, type, !!normalized, stride, Number(pointer));
+    },
+    glViewport: (x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        Jai.gl.viewport(x, y, width, height);
+    },
+    glBeginQuery: (target /*GLenum*/, id /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBeginTransformFeedback: (primitiveMode /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glBindBufferBase: (target /*GLenum*/, index /*GLuint*/, buffer /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBindBufferRange: (target /*GLenum*/, index /*GLuint*/, buffer /*GLuint*/, offset /*GLintptr*/, size /*GLsizeiptr*/) => {
+        console.error('Not implemented.');
+    },
+    glBindSampler: (unit /*GLuint*/, sampler /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBindTransformFeedback: (target /*GLenum*/, id /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glBindVertexArray: (array /*GLuint*/) => {
         if (array === 0) {
             Jai.gl.bindVertexArray(null);
         } else {
@@ -686,69 +1144,246 @@ const exported = {
             Jai.gl.bindVertexArray(array);
         }
     },
-    glBindBuffer: (target, buffer) => {
-        if (buffer === 0) {
-            Jai.gl.bindBuffer(target, null);
-        } else {
-            buffer = Names.objects[buffer];
-            Jai.gl.bindBuffer(target, buffer);
+    glBlitFramebuffer: (srcX0 /*GLint*/, srcY0 /*GLint*/, srcX1 /*GLint*/, srcY1 /*GLint*/, dstX0 /*GLint*/, dstY0 /*GLint*/, dstX1 /*GLint*/, dstY1 /*GLint*/, mask /*GLbitfield*/, filter /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glClearBufferiv: (buffer /*GLenum*/, drawbuffer /*GLint*/, value /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glClearBufferiv
+    glClearBufferuiv: (buffer /*GLenum*/, drawbuffer /*GLint*/, value /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glClearBufferuiv
+    glClearBufferfv: (buffer /*GLenum*/, drawbuffer /*GLint*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glClearBufferfv
+    glClearBufferfi: (buffer /*GLenum*/, drawbuffer /*GLint*/, depth /*GLfloat*/, stencil /*GLint*/) => {
+        console.error('Not implemented.');
+    }, // glClearBufferfi
+    glClientWaitSync: (sync /*GLsync*/, flags /*GLbitfield*/, timeout /*GLuint64*/) => /*GLenum*/ {
+        console.error('Not implemented.');
+    },
+    glCompressedTexSubImage3D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, zoffset /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, depth /*GLsizei*/, format /*GLenum*/, imageSize /*GLsizei*/, data /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glCopyBufferSubData: (readTarget /*GLenum*/, writeTarget /*GLenum*/, readOffset /*GLintptr*/, writeOffset /*GLintptr*/, size /*GLsizeiptr*/) => {
+        console.error('Not implemented.');
+    },
+    glCopyTexSubImage3D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, zoffset /*GLint*/, x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glCreateQueries: (target /*GLenum*/, n /*GLsizei*/, ids /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glCreateQuery
+    glCreateSamplers: (n /*GLsizei*/, samplers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glCreateSampler
+    glCreateTransformFeedbacks: (n /*GLsizei*/, ids /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glCreateTransformFeedback
+    glGenVertexArrays: (n /*GLsizei*/, arrays /**GLuint*/) => {
+        arrays = Number(arrays);
+        for (let i = 0; i < n; i++) {
+            const array = Jai.gl.createVertexArray();
+            const pointer = Names.addPointerObject(array);
+            Helpers.u32[arrays / 4 + i] = pointer;
         }
+    }, // glCreateVertexArray
+    glDeleteQueries: (n /*GLsizei*/, ids /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteQuery
+    glDeleteSamplers: (count /*GLsizei*/, samplers /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteSampler
+    glDeleteSync: (sync /*GLsync*/) => {
+        console.error('Not implemented.');
     },
-    glBufferData: (target, size, data, usage) => {
-        // console.error('idk');
-        const bytes = new Uint8Array(Memory.allocated.buffer, Number(data), Number(size));
-        Jai.gl.bufferData(target, bytes, usage);
+    glDeleteTransformFeedbacks: (n /*GLsizei*/, ids /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteTransformFeedback
+    glDeleteVertexArrays: (n /*GLsizei*/, arrays /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glDeleteVertexArray
+    glDrawArraysInstanced: (mode /*GLenum*/, first /*GLint*/, count /*GLsizei*/, instancecount /*GLsizei*/) => {
+        console.error('Not implemented.');
     },
-    glVertexAttribPointer: (index, size, type, normalized, stride, pointer) => {
-        Jai.gl.vertexAttribPointer(index, size, type, !!normalized, stride, Number(pointer));
+    glDrawBuffers: (n /*GLsizei*/, bufs /**GLenum*/) => {
+        console.error('Not implemented.');
     },
-    glEnableVertexAttribArray: (index) => {
-        Jai.gl.enableVertexAttribArray(index);
+    glDrawElementsInstanced: (mode /*GLenum*/, count /*GLsizei*/, type /*GLenum*/, indices /**void*/, instancecount /*GLsizei*/) => {
+        console.error('Not implemented.');
     },
-    glClear: (mask) => {
-        Jai.gl.clear(mask);
+    glDrawRangeElements: (mode /*GLenum*/, start /*GLuint*/, end /*GLuint*/, count /*GLsizei*/, type /*GLenum*/, indices /**void*/) => {
+        console.error('Not implemented.');
     },
-    glClearColor: (red, green, blue, alpha) => {
-        Jai.gl.clearColor(red, green, blue, alpha);
+    glEndQuery: (target /*GLenum*/) => {
+        console.error('Not implemented.');
     },
-    glUseProgram: (program) => {
-        program = Names.objects[program];
-        Jai.gl.useProgram(program);
+    glEndTransformFeedback: () => {
+        console.error('Not implemented.');
     },
-    glDrawElements: (mode, count, type, indices) => {
-        Jai.gl.drawElements(mode, count, type, Number(indices));
+    glFenceSync: (condition /*GLenum*/, flags /*GLbitfield*/) => /*GLsync*/ {
+        console.error('Not implemented.');
     },
-    // 'glDeleteVertexArrays': (n, arrays) => {
-    //     // TODO in jai assert n is 1
-    //     Jai.gl.deleteVertexArray(array[0]);
-    // },
-    // 'glDeleteBuffers': (n, buffers) => {
-    //     // TODO in jai assert n is 1
-    //     Jai.gl.deleteBuffer(buffers[0]);
-    // },
-    // 'glDeleteProgram': (program) => {
-    //     Jai.gl.deleteProgram(program);
-    // },
-    glViewport: (x, y, width, height) => {
-        Jai.gl.viewport(x, y, width, height);
+    glFramebufferTextureLayer: (target /*GLenum*/, attachment /*GLenum*/, texture /*GLuint*/, level /*GLint*/, layer /*GLint*/) => {
+        console.error('Not implemented.');
     },
-    glGetProgramInfoLog: (program, bufSize, length, infoLog) => {
-        program = Names.objects[program];
-        const message = Jai.gl.getProgramInfoLog(program);
-        const written = Helpers.writeString(Number(infoLog), message, bufSize);
-        if (length) {
-            Helpers.u32[Number(length) / 4] = written;
-        }
+    glGetActiveUniformBlockName: (program /*GLuint*/, uniformBlockIndex /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, uniformBlockName /**GLchar*/) => {
+        console.error('Not implemented.');
     },
-    glGetAttribLocation: (program, name) => {
-        program = Names.objects[program];
-        name = Number(name);
-        const bytes = new Uint8Array(Memory.allocated.buffer);
-        let string = '';
-        while (bytes[name] !== 0) {
-            string += String.fromCharCode(bytes[name]);
-            name += 1;
-        }
-        return Jai.gl.getAttribLocation(program, string);
+    glGetActiveUniformBlockiv: (program /*GLuint*/, uniformBlockIndex /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetActiveUniformBlockParameter
+    glGetActiveUniformsiv: (program /*GLuint*/, uniformCount /*GLsizei*/, uniformIndices /**GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetActiveUniforms
+    glGetBufferSubData: (target /*GLenum*/, offset /*GLintptr*/, size /*GLsizeiptr*/, data /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glGetFragDataLocation: (program /*GLuint*/, name /**GLchar*/) => /*GLint*/ {
+        console.error('Not implemented.');
+    },
+    glGetIndexedParameter: (target /*GLenum*/, index /*GLuint*/) => /*GLint*/ {
+        console.error('Not implemented.');
+    },
+    glGetInternalformativ: (target /*GLenum*/, internalformat /*GLenum*/, pname /*GLenum*/, bufSize /*GLsizei*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetInternalformatParameter
+    glGetQueryObjectiv: (id /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetQuery
+    glGetQueryObjectuiv: (id /*GLuint*/, pname /*GLenum*/, params /**GLuint*/) => {
+        console.error('Not implemented.');
+    }, // glGetQuery
+    glGetQueryiv: (target /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetQueryParameter
+    glGetSamplerParameteriv: (sampler /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetSamplerParameter
+    glGetSamplerParameterfv: (sampler /*GLuint*/, pname /*GLenum*/, params /**GLfloat*/) => {
+        console.error('Not implemented.');
+    }, // glGetSamplerParameter
+    glGetSynciv: (sync /*GLsync*/, pname /*GLenum*/, bufSize /*GLsizei*/, length /**GLsizei*/, values /**GLint*/) => {
+        console.error('Not implemented.');
+    }, // glGetSyncParameter
+    glGetTransformFeedbackVarying: (program /*GLuint*/, index /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, size /**GLsizei*/, type /**GLenum*/, name /**GLchar*/) => {
+        console.error('Not implemented.');
+    },
+    glGetUniformBlockIndex: (program /*GLuint*/, uniformBlockName /**GLchar*/) => /*GLuint*/ {
+        console.error('Not implemented.');
+    },
+    glGetUniformIndices: (program /*GLuint*/, uniformCount /*GLsizei*/, uniformNames /***GLchar*/, uniformIndices /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glInvalidateFramebuffer: (target /*GLenum*/, numAttachments /*GLsizei*/, attachments /**GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glInvalidateSubFramebuffer: (target /*GLenum*/, numAttachments /*GLsizei*/, attachments /**GLenum*/, x /*GLint*/, y /*GLint*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glIsQuery: (id /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsSampler: (sampler /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsSync: (sync /*GLsync*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsTransformFeedback: (id /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glIsVertexArray: (array /*GLuint*/) => /*GLboolean*/ {
+        console.error('Not implemented.');
+    },
+    glPauseTransformFeedback: () => {
+        console.error('Not implemented.');
+    },
+    glReadBuffer: (src /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glRenderbufferStorageMultisample: (target /*GLenum*/, samples /*GLsizei*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glResumeTransformFeedback: () => {
+        console.error('Not implemented.');
+    },
+    glSamplerParameteri: (sampler /*GLuint*/, pname /*GLenum*/, param /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glSamplerParameterf: (sampler /*GLuint*/, pname /*GLenum*/, param /*GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glTexImage3D: (target /*GLenum*/, level /*GLint*/, internalformat /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, depth /*GLsizei*/, border /*GLint*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glTexStorage2D: (target /*GLenum*/, levels /*GLsizei*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glTexStorage3D: (target /*GLenum*/, levels /*GLsizei*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/, depth /*GLsizei*/) => {
+        console.error('Not implemented.');
+    },
+    glTexSubImage3D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, zoffset /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, depth /*GLsizei*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glTransformFeedbackVaryings: (program /*GLuint*/, count /*GLsizei*/, varyings /***GLchar*/, bufferMode /*GLenum*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform1ui: (location /*GLint*/, v0 /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform1uiv: (location /*GLint*/, count /*GLsizei*/, value /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform2uiv: (location /*GLint*/, count /*GLsizei*/, value /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform3uiv: (location /*GLint*/, count /*GLsizei*/, value /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniform4uiv: (location /*GLint*/, count /*GLsizei*/, value /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformBlockBinding: (program /*GLuint*/, uniformBlockIndex /*GLuint*/, uniformBlockBinding /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix3x2fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix4x2fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix2x3fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix4x3fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix2x4fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glUniformMatrix3x4fv: (location /*GLint*/, count /*GLsizei*/, transpose /*GLboolean*/, value /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribDivisor: (index /*GLuint*/, divisor /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribI4i: (index /*GLuint*/, x /*GLint*/, y /*GLint*/, z /*GLint*/, w /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribI4ui: (index /*GLuint*/, x /*GLuint*/, y /*GLuint*/, z /*GLuint*/, w /*GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribI4iv: (index /*GLuint*/, v /**GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribI4uiv: (index /*GLuint*/, v /**GLuint*/) => {
+        console.error('Not implemented.');
+    },
+    glVertexAttribIPointer: (index /*GLuint*/, size /*GLint*/, type /*GLenum*/, stride /*GLsizei*/, pointer /**void*/) => {
+        console.error('Not implemented.');
+    },
+    glWaitSync: (sync /*GLsync*/, flags /*GLbitfield*/, timeout /*GLuint64*/) => {
+        console.error('Not implemented.');
     },
 };
