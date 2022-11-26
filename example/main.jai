@@ -25,7 +25,7 @@ build_wasm :: (base_name: string) {
     O_NAME := tprint("%.obj", base_name);
 
     WASM6432_FILE := ifx OS == .WINDOWS then "wasm64232.exe" else "wasm64232";
-    WASM6432_NAME := tprint("./3rd_party/%", WASM6432_FILE);
+    WASM6432_NAME := tprint("../jai/3rd_party/%", WASM6432_FILE);
 
     // wasm stack is by default 64 kb so we should probably increase it
     // also javascript wont set the heap size to >= 64 kb by default
@@ -36,11 +36,11 @@ build_wasm :: (base_name: string) {
     // --stack-first will move the stack memory to the start of the array so if you ever go over
     // it will crash instead of starting to override globals in the adjacent memory
     cmd("clang", "--target=wasm64", "-nostdlib", "-o", O_NAME, "-c", BC_NAME);
-    cmd("wasm-ld", "-m", "wasm64", "--no-entry", "--stack-first", "--export-all", "-z", tprint("stack-size=%", STACK_SIZE), "--allow-undefined", O_NAME, "-o", "./wasm/main64.wasm");
-    cmd(WASM6432_NAME, "-o", "../public/wasm/main32.wasm", "./wasm/main64.wasm");
+    cmd("wasm-ld", "-m", "wasm64", "--no-entry", "--stack-first", "--export-all", "-z", tprint("stack-size=%", STACK_SIZE), "--allow-undefined", O_NAME, "-o", "./main64.wasm");
+    cmd(WASM6432_NAME, "-o", "public/main32.wasm", "./main64.wasm");
 }
 
-Bindings :: #import,file "src/bindings.jai";
+Bindings :: #import,file "../module.jai";
 
 equals :: (h1: *Code_Procedure_Header, h2: *Code_Procedure_Header) -> bool {
     // TODO do this better matching argument and return types
@@ -67,11 +67,6 @@ equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
         }
 
         // TODO check actual types and dont check names I guess
-        // TODO although it might be necessary to keep names for the purpose of the body still working, but im not sure
-        // print("% %\n", a[i].name, b[i].name);
-        // if a[i].expression {
-        //     print("%\n%\n\n", << a[i].expression, << b[i].expression);
-        // }
     }
 
     return true;
@@ -173,27 +168,18 @@ prepare_object_file_for_build_wasm :: (w: Workspace) -> string {
 }
 
 #run {
-    // assert(OS == .LINUX, "TODO: Only Linux is supported for now");
-
     workspace := compiler_create_workspace("Jai WASM");
     if !workspace {
         print("Error: Could not create a workspace\n");
         exit(1);
     }
 
-    // if !build_cpp_dynamic_lib("libwasmstub", "wasmstub.c") {
-    //     print("Error: Could not build dynamic lib with external names");
-    //     exit(1);
-    // }
-
     build_options := get_build_options(workspace);
     build_options.output_executable_name = "jaiwasm";
     build_options.llvm_options.output_bitcode = true;
     build_options.llvm_options.enable_split_modules = false;
-    build_options.import_path = .["C:/jai/modules", #run tprint("%replacements", #filepath)];
+    build_options.import_path = .["C:/jai/modules", #run tprint("%../../", #filepath)];
     set_build_options(build_options, workspace);
-
-    // remap_import(workspace, "*", "Basic", "BasicWasm");
 
     compiler_begin_intercept(workspace);
     files := file_list(tprint("%src", #filepath), true);

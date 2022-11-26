@@ -4,6 +4,8 @@ VAO: u32;
 EBO: u32;
 shaderProgram: u32;
 
+#import "JaiWasmGL";
+
 main :: () {
     set_context(*context);
 

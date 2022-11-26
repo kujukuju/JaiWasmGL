@@ -1,5 +1,5 @@
 window.addEventListener('load', () => {
-    Jai.initialize(document.getElementById('canvas'));
+    Jai.initialize(document.getElementById('canvas'), '/main32.wasm');
 });
 
 const initialized = () => {
