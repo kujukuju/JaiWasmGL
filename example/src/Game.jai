@@ -6,8 +6,12 @@ shaderProgram: u32;
 
 #import "JaiWasmGL";
 
+simple_function :: () #foreign #compiler;
+
 main :: () {
     set_context(*context);
+
+    simple_function();
 
     vertexShaderSource: *u8 = #string DONE
     #version 300 es

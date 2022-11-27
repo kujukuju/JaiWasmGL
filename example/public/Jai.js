@@ -24,7 +24,7 @@ const Jai = {
     instance: null,
     context: null,
     gl: null,
-    initialize: (canvas, path) => {
+    initialize: (canvas, path, exported) => {
         Jai.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
         if (!Jai.gl) {
             console.error('Could not initialize webgl context.');
@@ -32,8 +32,14 @@ const Jai = {
 
         // TODO deal with the context being lost gl.isContextLost
 
+        exported = exported || {};
+        const merged = {
+            ...bindings,
+            ...exported,
+        }
+
         WebAssembly.instantiateStreaming(fetch(path), {
-            'env': new Proxy(exported, {
+            'env': new Proxy(merged, {
                 get(target, prop, receiver) {
                     if (target.hasOwnProperty(prop)) {
                         return target[prop];
@@ -536,7 +542,7 @@ const Helpers = {
 // the goal is to avoid memory allocations and new objects in js at all costs
 // gc frame drops and stutters are probably harder to deal with than slower performance
 
-const exported = {
+const bindings = {
     memset: (dest, value, length) => {
         Helpers.u8.fill(value, Number(dest), Number(dest + length));
         return dest;
@@ -586,7 +592,7 @@ const exported = {
             // no need to copy data, yay
             return newPointer;
         } else {
-            exported.memcpy(newPointer, pointer, copySize);
+            bindings.memcpy(newPointer, pointer, copySize);
         }
     },
     free: (pointer) => {
