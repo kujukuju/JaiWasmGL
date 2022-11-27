@@ -6,4 +6,3 @@ const initialized = () => {
     Renderer.initialize();
     Loop.loop();
 };
-
