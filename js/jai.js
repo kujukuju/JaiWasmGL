@@ -24,7 +24,7 @@ const Jai = {
     instance: null,
     context: null,
     gl: null,
-    initialize: (canvas, path) => {
+    initialize: (canvas, path, exported) => {
         Jai.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
         if (!Jai.gl) {
             console.error('Could not initialize webgl context.');
@@ -32,8 +32,14 @@ const Jai = {
 
         // TODO deal with the context being lost gl.isContextLost
 
+        exported = exported || {};
+        const merged = {
+            ...bindings,
+            ...bindings,
+        }
+
         WebAssembly.instantiateStreaming(fetch(path), {
-            'env': new Proxy(exported, {
+            'env': new Proxy(merged, {
                 get(target, prop, receiver) {
                     if (target.hasOwnProperty(prop)) {
                         return target[prop];
@@ -502,16 +508,26 @@ const Helpers = {
     u64: null,
     s64: null,
     decoder: new TextDecoder(),
-    writeData: (pointer, data) => {
+    encoder: new TextEncoder(),
+    writeData32: (pointer, data) => {
         if (Number.isInteger(data)) {
-            Helpers.s32[pointer / 4] = data;
+            Helpers.s32[Number(pointer) / 4] = data;
         } else if (data === true) {
-            Helpers.s32[pointer / 4] = 1;
+            Helpers.s32[Number(pointer) / 4] = 1;
         } else if (data === false) {
-            Helpers.s32[pointer / 4] = 0;
+            Helpers.s32[Number(pointer) / 4] = 0;
         }
     },
-    writeString: (pointer, string, length) => {
+    writeData64: (pointer, data) => {
+        if (Number.isInteger(data)) {
+            Helpers.s64[Number(pointer) / 8] = BigInt(data);
+        } else if (data === true) {
+            Helpers.s64[Number(pointer) / 8] = 1n;
+        } else if (data === false) {
+            Helpers.s64[Number(pointer) / 8] = 0n;
+        }
+    },
+    writeNullString: (pointer, string, length) => {
         // this is assumed to be null terminated
         for (let i = 0; i < length - 1; i++) {
             if (i < string.length) {
@@ -524,6 +540,13 @@ const Helpers = {
 
         return Math.min(string.length, length - 1);
     },
+    readString64: (pointer, length) => {
+        const bytes = Helpers.u8.subarray(Number(pointer), Number(pointer) + Number(length));
+        return Helpers.decoder.decode(bytes);
+    },
+    readBool: (pointer) => {
+        return !!Helpers.u8[pointer];
+    },
     getNullStringLength: (pointer) => {
         let length = 0;
         while (Helpers.u8[pointer + length]) {
@@ -531,12 +554,72 @@ const Helpers = {
         }
         return length;
     },
+    getSubArray: (pointer, length) => {
+        return Helpers.u8.subarray(Number(pointer), Number(pointer) + Number(length));
+    },
 };
 
 // the goal is to avoid memory allocations and new objects in js at all costs
 // gc frame drops and stutters are probably harder to deal with than slower performance
 
-const exported = {
+const bindings = {
+    read_entire_file_wasm: (name_data, name_count, log_errors, data, count) => {
+        const name = Helpers.readString64(name_data, name_count);
+        
+        const request = new XMLHttpRequest();
+        request.onload = () => {
+            if (request.status === 404) {
+                if (log_errors) {
+                    console.error('Requested file could not be found.', name, request.status, request.responseText);
+                }
+                
+                Helpers.writeData64(data, 0);
+                Helpers.writeData64(count, 0);
+                return;
+            }
+
+            if (request.status !== 200) {
+                if (log_errors) {
+                    console.error('Request had an unknown error.', name, request.status, request.responseText);
+                }
+                
+                Helpers.writeData64(data, 0);
+                Helpers.writeData64(count, 0);
+                return;
+            }
+
+            const string = request.response;
+            if (!string) {
+                if (log_errors) {
+                    console.error('Request had an incorrect response.', name, request.status, request.responseText);
+                }
+                
+                Helpers.writeData64(data, 0);
+                Helpers.writeData64(count, 0);
+                return;
+            }
+
+            // assuming each character is u8, which could be wrong for all I know because this is really weird
+            const pointer = Memory.alloc(string.length);
+            const subarray = Helpers.getSubArray(pointer, string.length);
+            Helpers.encoder.encodeInto(string, subarray);
+
+            Helpers.writeData64(data, pointer);
+            Helpers.writeData64(count, string.length);
+        };
+        request.onerror = () => {
+            if (log_errors) {
+                console.error('Request could not be completed.', name, request.status, request.responseText);
+            }
+
+            Helpers.writeData64(data, 0);
+            Helpers.writeData64(count, 0);
+        };
+        // its not possible to set responseType in synchronous mode, and if you spin lock you never get the callback
+        request.overrideMimeType("text/plain; charset=x-user-defined");
+        request.open('GET', name, false);
+        request.send();
+    },
     memset: (dest, value, length) => {
         Helpers.u8.fill(value, Number(dest), Number(dest + length));
         return dest;
@@ -548,6 +631,7 @@ const exported = {
         // write.set(read);
         dest = Number(dest);
         src = Number(src);
+        length = Number(length);
         if (dest <= src) {
             for (let i = 0; i < length; i++) {
                 Helpers.u8[dest + i] = Helpers.u8[src + i];
@@ -586,7 +670,7 @@ const exported = {
             // no need to copy data, yay
             return newPointer;
         } else {
-            exported.memcpy(newPointer, pointer, copySize);
+            bindings.memcpy(newPointer, pointer, copySize);
         }
     },
     free: (pointer) => {
@@ -855,7 +939,7 @@ const exported = {
     glGetProgramInfoLog: (program /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, infoLog /**GLchar*/) => {
         program = Names.objects[program];
         const message = Jai.gl.getProgramInfoLog(program);
-        const written = Helpers.writeString(Number(infoLog), message, bufSize);
+        const written = Helpers.writeNullString(Number(infoLog), message, bufSize);
         if (length) {
             Helpers.u32[Number(length) / 4] = written;
         }
@@ -863,7 +947,7 @@ const exported = {
     glGetProgramiv: (program /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
         program = Names.objects[program];
         const data = Jai.gl.getProgramParameter(program, pname);
-        Helpers.writeData(Number(params), data);
+        Helpers.writeData32(Number(params), data);
     }, // glGetProgramParameter
     glGetRenderbufferParameteriv: (target /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
         console.error('Not implemented.');
@@ -871,7 +955,7 @@ const exported = {
     glGetShaderInfoLog: (shader /*GLuint*/, bufSize /*GLsizei*/, length /**GLsizei*/, infoLog /**GLchar*/) => {
         shader = Names.objects[shader];
         const message = Jai.gl.getShaderInfoLog(shader);
-        const written = Helpers.writeString(Number(infoLog), message, bufSize);
+        const written = Helpers.writeNullString(Number(infoLog), message, bufSize);
         if (length) {
             Helpers.u32[Number(length) / 4] = written;
         }
@@ -879,7 +963,7 @@ const exported = {
     glGetShaderiv: (shader /*GLuint*/, pname /*GLenum*/, params /**GLint*/) => {
         shader = Names.objects[shader];
         const data = Jai.gl.getShaderParameter(shader, pname);
-        Helpers.writeData(Number(params), data);
+        Helpers.writeData32(Number(params), data);
     }, // getShaderParameter
     glGetShaderPrecisionFormat: (shadertype /*GLenum*/, precisiontype /*GLenum*/, range /**GLint*/, precision /**GLint*/) => {
         console.error('Not implemented.');
@@ -985,8 +1069,6 @@ const exported = {
             } else {
                 strLength = Helpers.getNullStringLength(Number(strPointer));
             }
-
-            Jai.gl.UNPACK_ALIGNMENT;
 
             const bytes = Helpers.u8.subarray(Number(strPointer), Number(strPointer) + strLength);
             source += Helpers.decoder.decode(bytes);

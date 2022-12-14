@@ -51,7 +51,11 @@ wasm_replace_methods_and_generate_object :: (workspace: Workspace) -> string {
                         continue;
                     }
 
-                    // if we can replace this with a replacement function then do it and continue
+                    // don't replace things inside bindings
+                    if ends_with(body.header.location.enclosing_load.fully_pathed_filename, "bindings.jai") {
+                        continue;
+                    }
+
                     replaced_body := false;
                     for replacement_header: replacement_list {
                         if equals(body.header, replacement_header) {
@@ -164,10 +168,6 @@ equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
             return false;
         }
 
-        if a[i].flags != b[i].flags {
-            return false;
-        }
-
         if a[i].name != b[i].name {
             return false;
         }
@@ -180,6 +180,7 @@ equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
 
 Replacements :: struct {
     #import "Basic";
+    #import,file "jai/bindings.jai";
 
     print_to_builder :: (builder : *String_Builder, format_string : string, args: .. Any) -> bool {
         implicit_index_cursor := 0;
@@ -267,6 +268,17 @@ Replacements :: struct {
         if builder.failed return false;
         return true;
     } @PrintLike
+
+    read_entire_file :: (name: string, zero_terminated := false, log_errors := true) -> string, bool {
+        result: string;
+
+        // can you load a file successfully with no data?
+        read_entire_file_wasm(name.data, name.count, log_errors, *result.data, *result.count);
+        view: [] u8;
+        view.data = result.data;
+        view.count = result.count;
+        return result, !!result.data;
+    }
 }
 
 #import "Basic";
