@@ -180,6 +180,7 @@ equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
 
 Replacements :: struct {
     #import "Basic";
+    #import "GL";
     #import,file "jai/bindings.jai";
 
     print_to_builder :: (builder : *String_Builder, format_string : string, args: .. Any) -> bool {
@@ -279,6 +280,23 @@ Replacements :: struct {
         view.count = result.count;
         return result, !!result.data;
     }
+
+    init_time :: () {
+        init_time_wasm();
+    }
+
+    get_time :: () -> float64 {
+        unix_ish := get_time_wasm();
+        return cast(float64) unix_ish / 1000.0;
+    }
+
+    file_exists :: (file_path: string) -> bool {
+        return file_exists_wasm(file_path.data, file_path.count);
+    }
+
+    // gl_load :: (procs: *GL_Procedures, GetProcAddress: GetProcAddressFunction = null) {
+
+    // }
 }
 
 #import "Basic";
