@@ -138,6 +138,8 @@ build_wasm :: (object_path: string, stack_size: int = STACK_SIZE) {
     wasm64232_file := ifx OS == .WINDOWS then "wasm64232.exe" else "wasm64232";
     wasm64232_name := tprint("%wasm64232/%", #filepath, wasm64232_file);
 
+    print("name is %\n", wasm64232_name);
+
     // wasm stack is by default 64 kb so we should probably increase it
     // also javascript wont set the heap size to >= 64 kb by default
     // so subtract these values to get it extremely small, then add my own page to the heap in javascript
