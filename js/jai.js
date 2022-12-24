@@ -732,11 +732,28 @@ const standard = {
     },
     EnterCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
     WriteFile: (handle, buffer, buffer_length, written_result, overlapped) => {
-        const bytes = Helpers.u8.subarray(Number(buffer), Number(buffer) + buffer_length);
+        // const bytes = Helpers.u8.subarray(Number(buffer), Number(buffer) + buffer_length);
 
         return 1;
     },
     LeaveCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
+    pthread_mutex_lock: (mutex) => {
+        return 0;
+    },
+    pthread_mutex_unlock: (mutex) => {
+        return 0;
+    },
+    write: (fd, buf, count) => {
+        const string = Helpers.readString64(buf, count);
+        if (fd == 1) {
+            console.log(string);
+        } else if (fd == 2) {
+            console.error(string);
+        } else {
+            console.error('Unhandled fd value.', fd);
+        }
+        return count;
+    },
 };
 
 const opengl = {
