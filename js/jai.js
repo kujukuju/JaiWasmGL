@@ -820,6 +820,8 @@ const mongoose = {
         // write into the connection pointer of the manager
         Helpers.u64[Number(mgr) / 8] = connection;
 
+        // TODO set up something to write packets
+
         return BigInt(connection);
     },
     mg_ws_send: (conn, buf, buflen, op) => {
