@@ -37,6 +37,7 @@ const Jai = {
             ...exported,
             ...bindings,
             ...standard,
+            ...mongoose,
             ...opengl,
             ...glfw,
         }
@@ -557,6 +558,10 @@ const Helpers = {
         }
         return length;
     },
+    readNullString64: (pointer) => {
+        const length = Helpers.getNullStringLength(pointer);
+        return Helpers.readString64(pointer, length);
+    },
     getSubArray: (pointer, length) => {
         return Helpers.u8.subarray(Number(pointer), Number(pointer) + Number(length));
     },
@@ -753,6 +758,79 @@ const standard = {
             console.error('Unhandled fd value.', fd);
         }
         return count;
+    },
+};
+
+const mongoose = {
+    MongooseConnection: function(url) {
+        this.websocket = new WebSocket(url);
+    },
+    closeConnection: (connectionPointer) => {
+        const fdPointer = Number(connectionPointer) + 72;
+        const fd = Helpers.u64[fdPointer / 8];
+        if (fd) {
+            const websocket = Names.objects[Number(fd)];
+            websocket.close();
+
+            Names.freePointerObject(Number(fd));
+            Helpers.u64[fdPointer / 8] = 0;
+        }
+    },
+    mg_mgr_init: (mgr) => {
+        // do nothing I guess
+    },
+    mg_mgr_free: (mgr) => {
+        const connectionPointer = Helpers.u64[mgr / 8];
+        if (connectionPointer) {
+            mongoose.closeConnection(connectionPointer);
+        }
+    },
+    mg_mgr_poll: (mgr, millis) => {
+        // this function has to read packets, send queued packets, close websockets marked is_closing, and flush and close websockets marked is_dumping
+        // if mgr -> connection -> is_closing, close it
+        const connectionPointer = Helpers.u64[Number(mgr) / 8];
+        if (connectionPointer) {
+            // deal with is_closing and is_flushing
+            const isClosingPointer = Number(connectionPointer) + 276;
+            const isDumpingointer = Number(connectionPointer) + 272;
+            let shouldClose = false;
+            // is closing
+            shouldClose = shouldClose || Helpers.u32[isClosingPointer / 4];
+            // is dumping
+            shouldClose = shouldClose || Helpers.u32[isDumpingointer / 4];
+            if (shouldClose) {
+                mongoose.closeConnection(connectionPointer);
+            }
+        }
+    },
+    mg_ws_connect: (mgr, url, fn, fn_data, fmt) => {
+        const string = Helpers.readNullString64(Number(url));
+        const websocket = new WebSocket(string);
+        const websocketPointer = Names.addPointerObject(websocket);
+
+        // TODO this needs to all be asserted in mongooseJai
+        const connection = Memory.alloc(288);
+        const fdPointer = connection + 72;
+        Helpers.u64[fdPointer / 8] = BigInt(websocketPointer);
+        const fnPointer = connection + 136;
+        Helpers.u64[fnPointer / 8] = BigInt(fn);
+        const fnDataPointer = connection + 144;
+        Helpers.u64[fnDataPointer / 8] = BigInt(fn_data);
+
+        // write into the connection pointer of the manager
+        Helpers.u64[Number(mgr) / 8] = connection;
+
+        return BigInt(connection);
+    },
+    mg_ws_send: (conn, buf, buflen, op) => {
+        const fdPointer = Number(conn) + 72;
+        const fd = Helpers.u64[fdPointer / 8];
+        if (fd) {
+            const bytes = Helpers.u8.subarray(Number(buf), Number(buf) + Number(buflen));
+
+            const websocket = Names.objects[Number(fd)];
+            websocket.send(bytes);
+        }
     },
 };
 
