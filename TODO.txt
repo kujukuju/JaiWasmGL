@@ -1,0 +1,8 @@
+
+#compiler methods are no longer coming through to wasm
+this is an issue for things like write_string_unsynchronized
+WriteFile -> s32 #foreign kernel32; also not supported anymore
+
+neither are #intrinsic methods but some of those are ok, like memcpy works on its own
+
+set up the load/read calls so they remain sync for the caller while being async as much as possible in the client

@@ -2,11 +2,13 @@
 
 See the example folder for how to use.
 
+Run with `jai main.jai -plug precursory -- import_dir ../plugin`.
+
 ### Jai Exports
 Jai functions are automatically added into the `Jai` struct in javascript.
 
 ### Javascript Exports
-To import a javascript function into jai, mark it as `#foreign #compiler`.
+To import a javascript function into jai, mark it as `#foreign WASM`.
 From javascript, all functions passed into `Jai.initialize` in the `exported` object will linked to jai.
 
 ### Memory Notes

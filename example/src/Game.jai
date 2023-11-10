@@ -6,12 +6,21 @@ shaderProgram: u32;
 
 #import "JaiWasmGL";
 
-simple_function :: () #foreign #compiler;
+simple_function :: () #foreign WASM;
+callback_function :: (a: u8, b: u8) #foreign WASM;
 
 main :: () {
     set_context(*context);
 
     simple_function();
+    alloc_wasm(null, 10);
+    write_string("huh\n");
+    // alloc(10);
+
+    data1: u8 = 1;
+    data2: u8 = 2;
+    memcpy(*data1, *data2, 1);
+    callback_function(data1, data2);
 
     vertexShaderSource: *u8 = #string DONE
     #version 300 es
@@ -118,7 +127,10 @@ update :: () {
 }
 
 resize :: (width: s32, height: s32) {
+    print("Received jai resize\n");
     glViewport(0, 0, xx width, xx height);
 }
 
 #import "Basic";
+
+WASM :: #library "WASM";

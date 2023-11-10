@@ -1,2 +1,2 @@
-#load "jai/bindings.jai";
-#load "jai/wasmgl.jai";
+#load "plugin/jai/bindings.jai";
+#load "plugin/jai/wasmgl.jai";

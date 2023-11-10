@@ -25,7 +25,7 @@ const Jai = {
     context: null,
     gl: null,
     initialize: (canvas, path, exported) => {
-        Jai.gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        Jai.gl = canvas.getContext('webgl2'); // || canvas.getContext('webgl');
         if (!Jai.gl) {
             console.error('Could not initialize webgl context.');
         }
@@ -59,12 +59,20 @@ const Jai = {
             Memory.allocated = Jai.instance.exports.memory;
             Memory.allocated.grow(pages);
             Memory.rebuildAccess();
-        
-            Jai.instance.exports.main(0, BigInt(0));
+
+            const main = (() => {
+                for (const name in Jai.instance.exports) {
+                    if (name.startsWith('main')) {
+                        return Jai.instance.exports[name];
+                    }
+                }
+            })();
+            main(NULL64);
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat
             const validRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+_[0-9a-z]+$');
 
+            console.log(Jai.instance.exports);
             for (const name in Jai.instance.exports) {
                 if (validRegex.test(name)) {
                     // this blanket split affects things that arent appended with jibberish but I'm not sure why some methods have jibberish and others dont
@@ -115,6 +123,7 @@ const Memory = {
         return value;
     },
     alloc: (bytes) => {
+        console.log('alloc');
         bytes = Math.max(bytes, MIN_MEMORY_BYTES);
 
         const size = Memory.nextPowerOfTwo(bytes);
@@ -548,6 +557,7 @@ const bindings = {
         return dest;
     },
     memcpy: (dest, src, length) => {
+        console.log('memcpyed');
         // TODO I want to compare the speeds here
         // const write = new Uint8Array(Memory.allocated.buffer, Number(dest), Number(length));
         // const read = new Uint8Array(Memory.allocated.buffer, Number(src), Number(length));
@@ -596,6 +606,32 @@ const bindings = {
         }
     },
     free: (pointer) => {
+        Memory.free(Number(pointer));
+    },
+    alloc_wasm: (heap, size) => {
+        console.log('alloc');
+        return BigInt(Memory.alloc(Number(size)));
+    },
+    realloc_wasm: (heap, ptr, size) => {
+        if (!pointer) {
+            return BigInt(Memory.alloc(Number(size)));
+        }
+
+        // TODO try not to move the content, but this will handle most cases already
+        const oldSize = Memory.free(Number(pointer));
+        const newPointer = BigInt(Memory.alloc(Number(size)));
+
+        // im not sure if you can realloc down, but maybe
+        const copySize = Math.min(oldSize, Number(size));
+
+        if (newPointer === pointer) {
+            // no need to copy data, yay
+            return newPointer;
+        } else {
+            bindings.memcpy(newPointer, pointer, copySize);
+        }
+    },
+    free_wasm: (heap, ptr) => {
         Memory.free(Number(pointer));
     },
     EnterCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
