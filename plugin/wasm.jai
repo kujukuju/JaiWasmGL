@@ -66,11 +66,12 @@ before_intercept :: (p: *Metaprogram_Plugin, flags: *Intercept_Flags) {
     options := get_build_options(p.workspace);
 
     options.llvm_options.enable_split_modules = false;
-    // options.llvm_options.function_sections = true;
-    // options.llvm_options.target_system_triple = "wasm64-unknown-unknown";
-    options.llvm_options.output_bitcode = true;
+    options.llvm_options.function_sections = true;
+    options.llvm_options.target_system_triple = "wasm64-unknown-unknown";
+    // options.llvm_options.output_bitcode = true;
     options.use_custom_link_command = true;
-    options.output_type = .OBJECT_FILE;
+    options.output_type = .DYNAMIC_LIBRARY;
+    // options.output_type = .OBJECT_FILE;
     // options.output_type = .NO_OUTPUT;
     options.lazy_foreign_function_lookups = true;
 
@@ -157,13 +158,13 @@ message :: (p: *Metaprogram_Plugin, message: *Message) {
                 o := get_build_options(p.workspace);
 
                 object_path := phase.compiler_generated_object_files[0];
-                bc_path := tprint("%.bc", path_strip_extension(object_path));
+                // bc_path := tprint("%.bc", path_strip_extension(object_path));
 
                 wasm64_file_path := tprint("%1/%2%0064.wasm", path_strip_filename(object_path), o.output_executable_name);
                 wasm32_file_path := tprint("%1/public/%2%0032.wasm", get_working_directory(), o.output_executable_name);
 
                 // TODO do I actually watn stdlib now?
-                cmd("clang", "--target=wasm64", "-nostdlib", "-o", object_path, "-c", bc_path);
+                // cmd("clang", "--target=wasm64", "-nostdlib", "-o", object_path, "-c", bc_path);
                 cmd("wasm-ld", "-m", "wasm64", "--no-entry", "--stack-first", "--export-all", "-z", tprint("stack-size=%", stack_size), "--allow-undefined", object_path, "-o", wasm64_file_path);
                 cmd(wasm64232_path, "-o", wasm32_file_path, wasm64_file_path);
                 compiler_custom_link_command_is_complete(p.workspace);
@@ -340,15 +341,25 @@ Replacements :: struct {
         return file_exists_wasm(file_path.data, file_path.count);
     }
 
-    heap_alloc :: (heap: *Heap, size: s64) -> *void {
-        return alloc_wasm(heap, size);
+    write_string_unsynchronized :: (s: string, to_standard_error := false) #no_context {
+        WASM :: #library "WASM";
+        WriteFile :: (handle: *void, buffer: *void, buffer_length: u32, written_result: *u32, overlapped: *void) -> s32 #foreign WASM;
+
+        written: u32;
+        // TODO eventually support stderror
+        status := WriteFile(null, s.data, cast(u32) s.count, *written, null);
     }
 
-    heap_realloc :: (heap: *Heap, ptr: *void, size: s64) -> *void {
-        return realloc_wasm(heap, ptr, size);
-    }
+    // heap_alloc :: (heap: *Heap, size: s64) -> *void {
+    //     return alloc_wasm(heap, size);
+    // }
 
-    heap_free :: (heap: *Heap, ptr: *void) {
-        free_wasm(heap, ptr);
-    }
+    // heap_realloc :: (heap: *Heap, ptr: *void, size: s64) -> *void {
+    //     return realloc_wasm(heap, ptr, size);
+    // }
+
+    // heap_free :: (heap: *Heap, ptr: *void) {
+    //     free_wasm(heap, ptr);
+    // }
 }
+

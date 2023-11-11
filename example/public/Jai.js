@@ -36,12 +36,15 @@ const Jai = {
         const merged = {
             ...bindings,
             ...exported,
-        }
+        };
 
         WebAssembly.instantiateStreaming(fetch(path), {
+            // the only purpose of the proxy here, I think, I think was so that you could error intelligently on missing fields. it probably adds overhead.
             'env': new Proxy(merged, {
+                // NOTE: this runs when the binding is just established, when the instance is instantiated. NOT when its called.
                 get(target, prop, receiver) {
                     if (target.hasOwnProperty(prop)) {
+                        console.log('Linked ', prop, target[prop]);
                         return target[prop];
                     }
                     return () => console.error('Missing function: ' +  prop);
@@ -553,6 +556,7 @@ const Helpers = {
 
 const bindings = {
     memset: (dest, value, length) => {
+        console.log('memset');
         Helpers.u8.fill(value, Number(dest), Number(dest + length));
         return dest;
     },
@@ -634,14 +638,21 @@ const bindings = {
     free_wasm: (heap, ptr) => {
         Memory.free(Number(pointer));
     },
+    get_time_wasm: () => {
+        return BigInt(Date.now());
+    },
     EnterCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
     WriteFile: (handle, buffer, buffer_length, written_result, overlapped) => {
         const bytes = Helpers.u8.subarray(Number(buffer), Number(buffer) + buffer_length);
+        console.log('writing?');
         console.log(Helpers.decoder.decode(bytes));
 
         return 1;
     },
     LeaveCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
+    VirtualAlloc: () => {
+        console.log('VirtualAlloc');
+    },
     // opengl
     glAttachShader: (program /*GLuint*/, shader /*GLuint*/) => {
         program = Names.objects[program];

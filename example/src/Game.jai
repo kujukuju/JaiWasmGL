@@ -5,12 +5,34 @@ EBO: u32;
 shaderProgram: u32;
 
 #import "JaiWasmGL";
+#import "Runtime_Support"(false);
+#import "FixedStringJai";
+// #import "rpmalloc";
 
 simple_function :: () #foreign WASM;
 callback_function :: (a: u8, b: u8) #foreign WASM;
 
 main :: () {
     set_context(*context);
+
+    // rpmalloc_allocator_proc(.STARTUP, 0, 0, null, null);
+    // context.allocator = Allocator.{rpmalloc_allocator_proc, null};
+
+    data: u8;
+    memset(*data, 2, 1);
+
+    bytes := alloc(2);
+
+    fixed: FixedString(100);
+    append(*fixed, "test2 = test");
+    append(*fixed, create_fixed_string(data));
+
+    // print("test1\n");
+    write_string("test2\n");
+    write_string_unsynchronized(temp_string(fixed));
+
+    // data := "test";
+    // WriteFile(null, *data, 4, null, null);
 
     // simple_function();
     // alloc_wasm(null, 10);
