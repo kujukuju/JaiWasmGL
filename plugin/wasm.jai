@@ -22,7 +22,6 @@ get_plugin :: () -> *Metaprogram_Plugin {
 
     p.message = message;
     p.shutdown = shutdown;
-    // p.add_source = add_source;
     p.before_intercept = before_intercept;
     p.finish = finish;
 
@@ -58,22 +57,18 @@ use_plugin_last :: (plugin: *Metaprogram_Plugin) {
     if plugin.shutdown plugin.shutdown(plugin);
 }
 
-add_source :: (p: *Metaprogram_Plugin) {
-    add_build_string("WASM :: #library \"WASM\";", p.workspace);
-}
-
 before_intercept :: (p: *Metaprogram_Plugin, flags: *Intercept_Flags) {
     options := get_build_options(p.workspace);
 
     options.llvm_options.enable_split_modules = false;
     options.llvm_options.function_sections = true;
     options.llvm_options.target_system_triple = "wasm64-unknown-unknown";
-    // options.llvm_options.output_bitcode = true;
+    // options.llvm_options.target_system_features = "+bulk-memory";
     options.use_custom_link_command = true;
-    options.output_type = .DYNAMIC_LIBRARY;
-    // options.output_type = .OBJECT_FILE;
-    // options.output_type = .NO_OUTPUT;
+    options.output_type = .OBJECT_FILE;
     options.lazy_foreign_function_lookups = true;
+    options.cpu_target = .CUSTOM;
+    options.emit_debug_info = .DWARF;
 
     set_build_options(options, p.workspace);
 
@@ -164,7 +159,6 @@ message :: (p: *Metaprogram_Plugin, message: *Message) {
                 wasm32_file_path := tprint("%1/public/%2%0032.wasm", get_working_directory(), o.output_executable_name);
 
                 // TODO do I actually watn stdlib now?
-                // cmd("clang", "--target=wasm64", "-nostdlib", "-o", object_path, "-c", bc_path);
                 cmd("wasm-ld", "-m", "wasm64", "--no-entry", "--stack-first", "--export-all", "-z", tprint("stack-size=%", stack_size), "--allow-undefined", object_path, "-o", wasm64_file_path);
                 cmd(wasm64232_path, "-o", wasm32_file_path, wasm64_file_path);
                 compiler_custom_link_command_is_complete(p.workspace);
@@ -228,6 +222,7 @@ equals :: (a: [] *Code_Declaration, b: [] *Code_Declaration) -> bool {
 Replacements :: struct {
     #import "Basic";
     #import "GL";
+    #import "System";
     #import,file "./jai/bindings.jai";
 
     print_to_builder :: (builder : *String_Builder, format_string : string, args: .. Any) -> bool {
@@ -328,10 +323,6 @@ Replacements :: struct {
         return result, !!result.data;
     }
 
-    init_time :: () {
-        init_time_wasm();
-    }
-
     get_time :: () -> float64 {
         unix_ish := get_time_wasm();
         return cast(float64) unix_ish / 1000.0;
@@ -342,24 +333,10 @@ Replacements :: struct {
     }
 
     write_string_unsynchronized :: (s: string, to_standard_error := false) #no_context {
-        WASM :: #library "WASM";
-        WriteFile :: (handle: *void, buffer: *void, buffer_length: u32, written_result: *u32, overlapped: *void) -> s32 #foreign WASM;
+        WriteFile :: (handle: *void, buffer: *void, buffer_length: u32, written_result: *u32, overlapped: *void) -> s32 #foreign;
 
         written: u32;
         // TODO eventually support stderror
         status := WriteFile(null, s.data, cast(u32) s.count, *written, null);
     }
-
-    // heap_alloc :: (heap: *Heap, size: s64) -> *void {
-    //     return alloc_wasm(heap, size);
-    // }
-
-    // heap_realloc :: (heap: *Heap, ptr: *void, size: s64) -> *void {
-    //     return realloc_wasm(heap, ptr, size);
-    // }
-
-    // heap_free :: (heap: *Heap, ptr: *void) {
-    //     free_wasm(heap, ptr);
-    // }
 }
-

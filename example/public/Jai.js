@@ -34,6 +34,7 @@ const Jai = {
 
         exported = exported || {};
         const merged = {
+            ...allocator,
             ...bindings,
             ...exported,
         };
@@ -63,19 +64,18 @@ const Jai = {
             Memory.allocated.grow(pages);
             Memory.rebuildAccess();
 
-            const main = (() => {
-                for (const name in Jai.instance.exports) {
-                    if (name.startsWith('main')) {
-                        return Jai.instance.exports[name];
-                    }
-                }
-            })();
-            main(NULL64);
+            // const main = (() => {
+            //     for (const name in Jai.instance.exports) {
+            //         if (name.startsWith('main')) {
+            //             return Jai.instance.exports[name];
+            //         }
+            //     }
+            // })();
+            Jai.instance.exports.main2(NULL64);
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat
             const validRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+_[0-9a-z]+$');
 
-            console.log(Jai.instance.exports);
             for (const name in Jai.instance.exports) {
                 if (validRegex.test(name)) {
                     // this blanket split affects things that arent appended with jibberish but I'm not sure why some methods have jibberish and others dont
@@ -88,7 +88,10 @@ const Jai = {
                         continue;
                     }
     
-                    Jai[validName] = Jai.instance.exports[name].bind(this, Jai.context);
+                    if (typeof Jai.instance.exports[name] === 'function') {
+                        console.log('Binding context to ', name, Jai.instance.exports[name]);
+                        Jai[validName] = Jai.instance.exports[name].bind(this, Jai.context);
+                    }
                 }
             }
 
@@ -433,7 +436,7 @@ const Memory = {
         return Math.round(Math.log2(Memory.heapSize / bytes));
     },
     rebuildAccess: () => {
-        Memory.heapPointer = Number(Jai.instance.exports.__heap_base.value);
+        Memory.heapPointer = Number(Jai.instance.exports.heap_base);
         Memory.heapSize = Memory.previousPowerOfTwo(Memory.allocated.buffer.byteLength - Memory.heapPointer);
         Helpers.u8 = new Uint8Array(Memory.allocated.buffer);
         Helpers.u32 = new Uint32Array(Memory.allocated.buffer);
@@ -554,6 +557,34 @@ const Helpers = {
 // the goal is to avoid memory allocations and new objects in js at all costs
 // gc frame drops and stutters are probably harder to deal with than slower performance
 
+const allocator = {
+    kalloc: (size) => {
+        return BigInt(Memory.alloc(Number(size)));
+    },
+    krealloc: (pointer, size) => {
+        if (!pointer) {
+            return BigInt(Memory.alloc(Number(size)));
+        }
+
+        // TODO try not to move the content, but this will handle most cases already
+        const oldSize = Memory.free(Number(pointer));
+        const newPointer = BigInt(Memory.alloc(Number(size)));
+
+        // im not sure if you can realloc down, but maybe
+        const copySize = Math.min(oldSize, Number(size));
+
+        if (newPointer === pointer) {
+            // no need to copy data, yay
+            return newPointer;
+        } else {
+            bindings.memcpy(newPointer, pointer, copySize);
+        }
+    },
+    kfree: (pointer) => {
+        Memory.free(Number(pointer));
+    },
+};
+
 const bindings = {
     memset: (dest, value, length) => {
         console.log('memset');
@@ -587,57 +618,6 @@ const bindings = {
     set_context: (context) => Jai.context = BigInt(context),
     sigemptyset: () => {},
     sigaction: () => {},
-    malloc: (size) => {
-        return BigInt(Memory.alloc(Number(size)));
-    },
-    realloc: (pointer, size) => {
-        if (!pointer) {
-            return BigInt(Memory.alloc(Number(size)));
-        }
-
-        // TODO try not to move the content, but this will handle most cases already
-        const oldSize = Memory.free(Number(pointer));
-        const newPointer = BigInt(Memory.alloc(Number(size)));
-
-        // im not sure if you can realloc down, but maybe
-        const copySize = Math.min(oldSize, Number(size));
-
-        if (newPointer === pointer) {
-            // no need to copy data, yay
-            return newPointer;
-        } else {
-            bindings.memcpy(newPointer, pointer, copySize);
-        }
-    },
-    free: (pointer) => {
-        Memory.free(Number(pointer));
-    },
-    alloc_wasm: (heap, size) => {
-        console.log('alloc');
-        return BigInt(Memory.alloc(Number(size)));
-    },
-    realloc_wasm: (heap, ptr, size) => {
-        if (!pointer) {
-            return BigInt(Memory.alloc(Number(size)));
-        }
-
-        // TODO try not to move the content, but this will handle most cases already
-        const oldSize = Memory.free(Number(pointer));
-        const newPointer = BigInt(Memory.alloc(Number(size)));
-
-        // im not sure if you can realloc down, but maybe
-        const copySize = Math.min(oldSize, Number(size));
-
-        if (newPointer === pointer) {
-            // no need to copy data, yay
-            return newPointer;
-        } else {
-            bindings.memcpy(newPointer, pointer, copySize);
-        }
-    },
-    free_wasm: (heap, ptr) => {
-        Memory.free(Number(pointer));
-    },
     get_time_wasm: () => {
         return BigInt(Date.now());
     },

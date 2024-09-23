@@ -6,248 +6,248 @@ gl_load :: (procs: *GL_Procedures, GetProcAddress: GetProcAddressFunction = null
 gl: GL_Procedures;
 
 // webgl 1
-glActiveTexture :: (texture: GLenum) #foreign WASM;
-glAttachShader :: (program: GLuint, shader: GLuint) #foreign WASM;
-glBindAttribLocation :: (program: GLuint, index: GLuint, name: *GLchar) #foreign WASM;
-glBindBuffer :: (target: GLenum, buffer: GLuint) #foreign WASM;
-glBindFramebuffer :: (target: GLenum, framebuffer: GLuint) #foreign WASM;
-glBindRenderbuffer :: (target: GLenum, renderbuffer: GLuint) #foreign WASM;
-glBindTexture :: (target: GLenum, texture: GLuint) #foreign WASM;
-glBlendColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign WASM;
-glBlendEquation :: (mode: GLenum) #foreign WASM;
-glBlendEquationSeparate :: (modeRGB: GLenum, modeAlpha: GLenum) #foreign WASM;
-glBlendFunc :: (sfactor: GLenum, dfactor: GLenum) #foreign WASM;
-glBlendFuncSeparate :: (sfactorRGB: GLenum, dfactorRGB: GLenum, sfactorAlpha: GLenum, dfactorAlpha: GLenum) #foreign WASM;
-glBufferData :: (target: GLenum, size: GLsizeiptr, data: *void, usage: GLenum) #foreign WASM;
-glBufferSubData :: (target: GLenum, offset: GLintptr, size: GLsizeiptr, data: *void) #foreign WASM;
-glCheckFramebufferStatus :: (target: GLenum) -> GLenum #foreign WASM;
-glClear :: (mask: GLbitfield) #foreign WASM;
-glClearColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign WASM;
-glClearDepth :: (depth: GLdouble) #foreign WASM;
-glClearStencil :: (s: GLint) #foreign WASM;
-glColorMask :: (red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean) #foreign WASM;
-glCommit :: () #foreign WASM;
-glCompileShader :: (shader: GLuint) #foreign WASM;
-glCompressedTexImage2D :: (target: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, border: GLint, imageSize: GLsizei, data: *void) #foreign WASM;
-glCompressedTexImage3D :: (target: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, imageSize: GLsizei, data: *void) #foreign WASM;
-glCompressedTexSubImage2D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, width: GLsizei, height: GLsizei, format: GLenum, imageSize: GLsizei, data: *void) #foreign WASM;
-glCopyTexImage2D :: (target: GLenum, level: GLint, internalformat: GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei, border: GLint) #foreign WASM;
-glCopyTexSubImage2D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign WASM;
-glGenBuffers :: (n: GLsizei, buffers: *GLuint) #foreign WASM; // glCreateBuffer
-glGenFramebuffers :: (n: GLsizei, framebuffers: *GLuint) #foreign WASM; // glCreateFramebuffer
-glCreateProgram :: () -> GLuint #foreign WASM;
-glCreateRenderbuffers :: (n: GLsizei, renderbuffers: *GLuint) #foreign WASM; // glCreateRenderbuffer
-glCreateShader :: (type: GLenum) -> GLuint #foreign WASM;
-glCreateTextures :: (target: GLenum, n: GLsizei, textures: *GLuint) #foreign WASM; // glCreateTexture
-glCullFace :: (mode: GLenum) #foreign WASM;
-glDeleteBuffers :: (n: GLsizei, buffers: *GLuint) #foreign WASM; // glDeleteBuffer
-glDeleteFramebuffers :: (n: GLsizei, framebuffers: *GLuint) #foreign WASM; // glDeleteFramebuffer
-glDeleteProgram :: (program: GLuint) #foreign WASM;
-glDeleteRenderbuffers :: (n: GLsizei, renderbuffers: *GLuint) #foreign WASM; // glDeleteRenderbuffer
-glDeleteShader :: (shader: GLuint) #foreign WASM;
-glDeleteTextures :: (n: GLsizei, textures: *GLuint) #foreign WASM; // glDeleteTexture
-glDepthFunc :: (func: GLenum) #foreign WASM;
-glDepthMask :: (flag: GLboolean) #foreign WASM;
-glDepthRange :: (near: GLdouble, far: GLdouble) #foreign WASM;
-glDetachShader :: (program: GLuint, shader: GLuint) #foreign WASM;
-glDisable :: (cap: GLenum) #foreign WASM;
-glDisableVertexAttribArray :: (index: GLuint) #foreign WASM;
-glDrawArrays :: (mode: GLenum, first: GLint, count: GLsizei) #foreign WASM;
-glDrawElements :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void) #foreign WASM;
-glEnable :: (cap: GLenum) #foreign WASM;
-glEnableVertexAttribArray :: (index: GLuint) #foreign WASM;
-glFinish :: () #foreign WASM;
-glFlush :: () #foreign WASM;
-glFramebufferRenderbuffer :: (target: GLenum, attachment: GLenum, renderbuffertarget: GLenum, renderbuffer: GLuint) #foreign WASM;
-glFramebufferTexture2D :: (target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint) #foreign WASM;
-glFrontFace :: (mode: GLenum) #foreign WASM;
-glGenTextures :: (n: GLsizei, textures: *GLuint) #foreign WASM;
-glGenerateMipmap :: (target: GLenum) #foreign WASM;
-glGetActiveAttrib :: (program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLint, type: *GLenum, name: *GLchar) #foreign WASM;
-glGetActiveUniform :: (program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLint, type: *GLenum, name: *GLchar) #foreign WASM;
-glGetAttachedShaders :: (program: GLuint, maxCount: GLsizei, count: *GLsizei, shaders: *GLuint) #foreign WASM;
-glGetAttribLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign WASM;
-glGetBufferParameteriv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign WASM; // glGetBufferParameter
-glGetContextAttributes :: () -> GLint #foreign WASM;
-glGetError :: () -> GLenum #foreign WASM;
-glGetExtension :: (name: *GLchar, length: GLsizei) -> GLint #foreign WASM;
-glGetFramebufferAttachmentParameteriv :: (target: GLenum, attachment: GLenum, pname: GLenum, params: *GLint) #foreign WASM; // glGetFramebufferAttachmentParameter
-glGetBooleanv :: (pname: GLenum, data: *GLboolean) #foreign WASM; // glGetParameter
-glGetDoublev :: (pname: GLenum, data: *GLdouble) #foreign WASM; // glGetParameter
-glGetFloatv :: (pname: GLenum, data: *GLfloat) #foreign WASM; // glGetParameter
-glGetIntegerv :: (pname: GLenum, data: *GLint) #foreign WASM; // glGetParameter
-glGetString :: (name: GLenum) -> *GLubyte #foreign WASM; // glGetParameter
-glGetInteger64v :: (pname: GLenum, data: *GLint64) #foreign WASM; // glGetParameter
-glGetBooleani_v :: (target: GLenum, index: GLuint, data: *GLboolean) #foreign WASM; // glGetParameter
-glGetIntegeri_v :: (target: GLenum, index: GLuint, data: *GLint) #foreign WASM; // glGetParameter
-glGetFloati_v :: (target: GLenum, index: GLuint, data: *GLfloat) #foreign WASM; // glGetParameter
-glGetDoublei_v :: (target: GLenum, index: GLuint, data: *GLdouble) #foreign WASM; // glGetParameter
-glGetInteger64i_v :: (target: GLenum, index: GLuint, data: *GLint64) #foreign WASM; // glGetParameter
-glGetProgramInfoLog :: (program: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign WASM;
-glGetProgramiv :: (program: GLuint, pname: GLenum, params: *GLint) #foreign WASM; // glGetProgramParameter
-glGetRenderbufferParameteriv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign WASM; // glGetRenderbufferParameter
-glGetShaderInfoLog :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign WASM;
-glGetShaderiv :: (shader: GLuint, pname: GLenum, params: *GLint) #foreign WASM; // getShaderParameter
-glGetShaderPrecisionFormat :: (shadertype: GLenum, precisiontype: GLenum, range: *GLint, precision: *GLint) #foreign WASM;
-glGetShaderSource :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, source: *GLchar) #foreign WASM;
-glGetSupportedExtensions :: (names: **GLchar, lengths: *GLsizei) #foreign WASM;
-glGetTexParameterfv :: (target: GLenum, pname: GLenum, params: *GLfloat) #foreign WASM; // glGetTexParameter
-glGetTexParameteriv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign WASM; // glGetTexParameter
-glGetUniformfv :: (program: GLuint, location: GLint, params: *GLfloat) #foreign WASM; // glGetUniform
-glGetUniformiv :: (program: GLuint, location: GLint, params: *GLint) #foreign WASM; // glGetUniform
-glGetUniformLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign WASM;
-glGetVertexAttribdv :: (index: GLuint, pname: GLenum, params: *GLdouble) #foreign WASM; // glGetVertexAttrib
-glGetVertexAttribfv :: (index: GLuint, pname: GLenum, params: *GLfloat) #foreign WASM; // glGetVertexAttrib
-glGetVertexAttribiv :: (index: GLuint, pname: GLenum, params: *GLint) #foreign WASM; // glGetVertexAttrib
-glGetVertexAttribPointerv :: (index: GLuint, pname: GLenum, pointer: **void) #foreign WASM; // glGetVertexAttribOffset
-glHint :: (target: GLenum, mode: GLenum) #foreign WASM;
-glIsBuffer :: (buffer: GLuint) -> GLboolean #foreign WASM;
-glIsContextLost :: () -> GLboolean #foreign WASM;
-glIsEnabled :: (cap: GLenum) -> GLboolean #foreign WASM;
-glIsFramebuffer :: (framebuffer: GLuint) -> GLboolean #foreign WASM;
-glIsProgram :: (program: GLuint) -> GLboolean #foreign WASM;
-glIsRenderbuffer :: (renderbuffer: GLuint) -> GLboolean #foreign WASM;
-glIsShader :: (shader: GLuint) -> GLboolean #foreign WASM;
-glIsTexture :: (texture: GLuint) -> GLboolean #foreign WASM;
-glLineWidth :: (width: GLfloat) #foreign WASM;
-glLinkProgram :: (program: GLuint) #foreign WASM;
-glMakeXRCompatible :: () -> GLboolean #foreign WASM;
-glPixelStorei :: (pname: GLenum, param: GLint) #foreign WASM;
-glPolygonOffset :: (factor: GLfloat, units: GLfloat) #foreign WASM;
-glReadPixels :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei, format: GLenum, type: GLenum, pixels: *void) #foreign WASM;
-glRenderbufferStorage :: (target: GLenum, internalformat: GLenum, width: GLsizei, height: GLsizei) #foreign WASM;
-glSampleCoverage :: (value: GLfloat, invert: GLboolean) #foreign WASM;
-glScissor :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign WASM;
-glShaderSource :: (shader: GLuint, count: GLsizei, str: **GLchar, length: *GLint) #foreign WASM;
-glStencilFunc :: (func: GLenum, ref: GLint, mask: GLuint) #foreign WASM;
-glStencilFuncSeparate :: (face: GLenum, func: GLenum, ref: GLint, mask: GLuint) #foreign WASM;
-glStencilMask :: (mask: GLuint) #foreign WASM;
-glStencilMaskSeparate :: (face: GLenum, mask: GLuint) #foreign WASM;
-glStencilOp :: (fail: GLenum, zfail: GLenum, zpass: GLenum) #foreign WASM;
-glStencilOpSeparate :: (face: GLenum, sfail: GLenum, dpfail: GLenum, dppass: GLenum) #foreign WASM;
-glTexImage2D :: (target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, type: GLenum, pixels: *void) #foreign WASM;
-glTexParameterf :: (target: GLenum, pname: GLenum, param: GLfloat) #foreign WASM;
-glTexParameteri :: (target: GLenum, pname: GLenum, param: GLint) #foreign WASM;
-glTexSubImage2D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, width: GLsizei, height: GLsizei, format: GLenum, type: GLenum, pixels: *void) #foreign WASM;
-glUniform1f :: (location: GLint, v0: GLfloat) #foreign WASM;
-glUniform1fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign WASM;
-glUniform1i :: (location: GLint, v0: GLint) #foreign WASM;
-glUniform1iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign WASM;
-glUniform2f :: (location: GLint, v0: GLfloat, v1: GLfloat) #foreign WASM;
-glUniform2fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign WASM;
-glUniform2i :: (location: GLint, v0: GLint, v1: GLint) #foreign WASM;
-glUniform2iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign WASM;
-glUniform3f :: (location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat) #foreign WASM;
-glUniform3fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign WASM;
-glUniform3i :: (location: GLint, v0: GLint, v1: GLint, v2: GLint) #foreign WASM;
-glUniform3iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign WASM;
-glUniform4f :: (location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat, v3: GLfloat) #foreign WASM;
-glUniform4fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign WASM;
-glUniform4i :: (location: GLint, v0: GLint, v1: GLint, v2: GLint, v3: GLint) #foreign WASM;
-glUniform4iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign WASM;
-glUniformMatrix2fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix3fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix4fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUseProgram :: (program: GLuint) #foreign WASM;
-glValidateProgram :: (program: GLuint) #foreign WASM;
-glVertexAttrib1f :: (index: GLuint, x: GLfloat) #foreign WASM;
-glVertexAttrib2f :: (index: GLuint, x: GLfloat, y: GLfloat) #foreign WASM;
-glVertexAttrib3f :: (index: GLuint, x: GLfloat, y: GLfloat, z: GLfloat) #foreign WASM;
-glVertexAttrib4f :: (index: GLuint, x: GLfloat, y: GLfloat, z: GLfloat, w: GLfloat) #foreign WASM;
-glVertexAttrib1fv :: (index: GLuint, v: *GLfloat) #foreign WASM;
-glVertexAttrib2fv :: (index: GLuint, v: *GLfloat) #foreign WASM;
-glVertexAttrib3fv :: (index: GLuint, v: *GLfloat) #foreign WASM;
-glVertexAttrib4fv :: (index: GLuint, v: *GLfloat) #foreign WASM;
-glVertexAttribPointer :: (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: *void) #foreign WASM;
-glViewport :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign WASM;
+glActiveTexture :: (texture: GLenum) #foreign;
+glAttachShader :: (program: GLuint, shader: GLuint) #foreign;
+glBindAttribLocation :: (program: GLuint, index: GLuint, name: *GLchar) #foreign;
+glBindBuffer :: (target: GLenum, buffer: GLuint) #foreign;
+glBindFramebuffer :: (target: GLenum, framebuffer: GLuint) #foreign;
+glBindRenderbuffer :: (target: GLenum, renderbuffer: GLuint) #foreign;
+glBindTexture :: (target: GLenum, texture: GLuint) #foreign;
+glBlendColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign;
+glBlendEquation :: (mode: GLenum) #foreign;
+glBlendEquationSeparate :: (modeRGB: GLenum, modeAlpha: GLenum) #foreign;
+glBlendFunc :: (sfactor: GLenum, dfactor: GLenum) #foreign;
+glBlendFuncSeparate :: (sfactorRGB: GLenum, dfactorRGB: GLenum, sfactorAlpha: GLenum, dfactorAlpha: GLenum) #foreign;
+glBufferData :: (target: GLenum, size: GLsizeiptr, data: *void, usage: GLenum) #foreign;
+glBufferSubData :: (target: GLenum, offset: GLintptr, size: GLsizeiptr, data: *void) #foreign;
+glCheckFramebufferStatus :: (target: GLenum) -> GLenum #foreign;
+glClear :: (mask: GLbitfield) #foreign;
+glClearColor :: (red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) #foreign;
+glClearDepth :: (depth: GLdouble) #foreign;
+glClearStencil :: (s: GLint) #foreign;
+glColorMask :: (red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean) #foreign;
+glCommit :: () #foreign;
+glCompileShader :: (shader: GLuint) #foreign;
+glCompressedTexImage2D :: (target: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, border: GLint, imageSize: GLsizei, data: *void) #foreign;
+glCompressedTexImage3D :: (target: GLenum, level: GLint, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, imageSize: GLsizei, data: *void) #foreign;
+glCompressedTexSubImage2D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, width: GLsizei, height: GLsizei, format: GLenum, imageSize: GLsizei, data: *void) #foreign;
+glCopyTexImage2D :: (target: GLenum, level: GLint, internalformat: GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei, border: GLint) #foreign;
+glCopyTexSubImage2D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
+glGenBuffers :: (n: GLsizei, buffers: *GLuint) #foreign; // glCreateBuffer
+glGenFramebuffers :: (n: GLsizei, framebuffers: *GLuint) #foreign; // glCreateFramebuffer
+glCreateProgram :: () -> GLuint #foreign;
+glCreateRenderbuffers :: (n: GLsizei, renderbuffers: *GLuint) #foreign; // glCreateRenderbuffer
+glCreateShader :: (type: GLenum) -> GLuint #foreign;
+glCreateTextures :: (target: GLenum, n: GLsizei, textures: *GLuint) #foreign; // glCreateTexture
+glCullFace :: (mode: GLenum) #foreign;
+glDeleteBuffers :: (n: GLsizei, buffers: *GLuint) #foreign; // glDeleteBuffer
+glDeleteFramebuffers :: (n: GLsizei, framebuffers: *GLuint) #foreign; // glDeleteFramebuffer
+glDeleteProgram :: (program: GLuint) #foreign;
+glDeleteRenderbuffers :: (n: GLsizei, renderbuffers: *GLuint) #foreign; // glDeleteRenderbuffer
+glDeleteShader :: (shader: GLuint) #foreign;
+glDeleteTextures :: (n: GLsizei, textures: *GLuint) #foreign; // glDeleteTexture
+glDepthFunc :: (func: GLenum) #foreign;
+glDepthMask :: (flag: GLboolean) #foreign;
+glDepthRange :: (near: GLdouble, far: GLdouble) #foreign;
+glDetachShader :: (program: GLuint, shader: GLuint) #foreign;
+glDisable :: (cap: GLenum) #foreign;
+glDisableVertexAttribArray :: (index: GLuint) #foreign;
+glDrawArrays :: (mode: GLenum, first: GLint, count: GLsizei) #foreign;
+glDrawElements :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void) #foreign;
+glEnable :: (cap: GLenum) #foreign;
+glEnableVertexAttribArray :: (index: GLuint) #foreign;
+glFinish :: () #foreign;
+glFlush :: () #foreign;
+glFramebufferRenderbuffer :: (target: GLenum, attachment: GLenum, renderbuffertarget: GLenum, renderbuffer: GLuint) #foreign;
+glFramebufferTexture2D :: (target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint) #foreign;
+glFrontFace :: (mode: GLenum) #foreign;
+glGenTextures :: (n: GLsizei, textures: *GLuint) #foreign;
+glGenerateMipmap :: (target: GLenum) #foreign;
+glGetActiveAttrib :: (program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLint, type: *GLenum, name: *GLchar) #foreign;
+glGetActiveUniform :: (program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLint, type: *GLenum, name: *GLchar) #foreign;
+glGetAttachedShaders :: (program: GLuint, maxCount: GLsizei, count: *GLsizei, shaders: *GLuint) #foreign;
+glGetAttribLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign;
+glGetBufferParameteriv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign; // glGetBufferParameter
+glGetContextAttributes :: () -> GLint #foreign;
+glGetError :: () -> GLenum #foreign;
+glGetExtension :: (name: *GLchar, length: GLsizei) -> GLint #foreign;
+glGetFramebufferAttachmentParameteriv :: (target: GLenum, attachment: GLenum, pname: GLenum, params: *GLint) #foreign; // glGetFramebufferAttachmentParameter
+glGetBooleanv :: (pname: GLenum, data: *GLboolean) #foreign; // glGetParameter
+glGetDoublev :: (pname: GLenum, data: *GLdouble) #foreign; // glGetParameter
+glGetFloatv :: (pname: GLenum, data: *GLfloat) #foreign; // glGetParameter
+glGetIntegerv :: (pname: GLenum, data: *GLint) #foreign; // glGetParameter
+glGetString :: (name: GLenum) -> *GLubyte #foreign; // glGetParameter
+glGetInteger64v :: (pname: GLenum, data: *GLint64) #foreign; // glGetParameter
+glGetBooleani_v :: (target: GLenum, index: GLuint, data: *GLboolean) #foreign; // glGetParameter
+glGetIntegeri_v :: (target: GLenum, index: GLuint, data: *GLint) #foreign; // glGetParameter
+glGetFloati_v :: (target: GLenum, index: GLuint, data: *GLfloat) #foreign; // glGetParameter
+glGetDoublei_v :: (target: GLenum, index: GLuint, data: *GLdouble) #foreign; // glGetParameter
+glGetInteger64i_v :: (target: GLenum, index: GLuint, data: *GLint64) #foreign; // glGetParameter
+glGetProgramInfoLog :: (program: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign;
+glGetProgramiv :: (program: GLuint, pname: GLenum, params: *GLint) #foreign; // glGetProgramParameter
+glGetRenderbufferParameteriv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign; // glGetRenderbufferParameter
+glGetShaderInfoLog :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, infoLog: *GLchar) #foreign;
+glGetShaderiv :: (shader: GLuint, pname: GLenum, params: *GLint) #foreign; // getShaderParameter
+glGetShaderPrecisionFormat :: (shadertype: GLenum, precisiontype: GLenum, range: *GLint, precision: *GLint) #foreign;
+glGetShaderSource :: (shader: GLuint, bufSize: GLsizei, length: *GLsizei, source: *GLchar) #foreign;
+glGetSupportedExtensions :: (names: **GLchar, lengths: *GLsizei) #foreign;
+glGetTexParameterfv :: (target: GLenum, pname: GLenum, params: *GLfloat) #foreign; // glGetTexParameter
+glGetTexParameteriv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign; // glGetTexParameter
+glGetUniformfv :: (program: GLuint, location: GLint, params: *GLfloat) #foreign; // glGetUniform
+glGetUniformiv :: (program: GLuint, location: GLint, params: *GLint) #foreign; // glGetUniform
+glGetUniformLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign;
+glGetVertexAttribdv :: (index: GLuint, pname: GLenum, params: *GLdouble) #foreign; // glGetVertexAttrib
+glGetVertexAttribfv :: (index: GLuint, pname: GLenum, params: *GLfloat) #foreign; // glGetVertexAttrib
+glGetVertexAttribiv :: (index: GLuint, pname: GLenum, params: *GLint) #foreign; // glGetVertexAttrib
+glGetVertexAttribPointerv :: (index: GLuint, pname: GLenum, pointer: **void) #foreign; // glGetVertexAttribOffset
+glHint :: (target: GLenum, mode: GLenum) #foreign;
+glIsBuffer :: (buffer: GLuint) -> GLboolean #foreign;
+glIsContextLost :: () -> GLboolean #foreign;
+glIsEnabled :: (cap: GLenum) -> GLboolean #foreign;
+glIsFramebuffer :: (framebuffer: GLuint) -> GLboolean #foreign;
+glIsProgram :: (program: GLuint) -> GLboolean #foreign;
+glIsRenderbuffer :: (renderbuffer: GLuint) -> GLboolean #foreign;
+glIsShader :: (shader: GLuint) -> GLboolean #foreign;
+glIsTexture :: (texture: GLuint) -> GLboolean #foreign;
+glLineWidth :: (width: GLfloat) #foreign;
+glLinkProgram :: (program: GLuint) #foreign;
+glMakeXRCompatible :: () -> GLboolean #foreign;
+glPixelStorei :: (pname: GLenum, param: GLint) #foreign;
+glPolygonOffset :: (factor: GLfloat, units: GLfloat) #foreign;
+glReadPixels :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei, format: GLenum, type: GLenum, pixels: *void) #foreign;
+glRenderbufferStorage :: (target: GLenum, internalformat: GLenum, width: GLsizei, height: GLsizei) #foreign;
+glSampleCoverage :: (value: GLfloat, invert: GLboolean) #foreign;
+glScissor :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
+glShaderSource :: (shader: GLuint, count: GLsizei, str: **GLchar, length: *GLint) #foreign;
+glStencilFunc :: (func: GLenum, ref: GLint, mask: GLuint) #foreign;
+glStencilFuncSeparate :: (face: GLenum, func: GLenum, ref: GLint, mask: GLuint) #foreign;
+glStencilMask :: (mask: GLuint) #foreign;
+glStencilMaskSeparate :: (face: GLenum, mask: GLuint) #foreign;
+glStencilOp :: (fail: GLenum, zfail: GLenum, zpass: GLenum) #foreign;
+glStencilOpSeparate :: (face: GLenum, sfail: GLenum, dpfail: GLenum, dppass: GLenum) #foreign;
+glTexImage2D :: (target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, type: GLenum, pixels: *void) #foreign;
+glTexParameterf :: (target: GLenum, pname: GLenum, param: GLfloat) #foreign;
+glTexParameteri :: (target: GLenum, pname: GLenum, param: GLint) #foreign;
+glTexSubImage2D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, width: GLsizei, height: GLsizei, format: GLenum, type: GLenum, pixels: *void) #foreign;
+glUniform1f :: (location: GLint, v0: GLfloat) #foreign;
+glUniform1fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign;
+glUniform1i :: (location: GLint, v0: GLint) #foreign;
+glUniform1iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign;
+glUniform2f :: (location: GLint, v0: GLfloat, v1: GLfloat) #foreign;
+glUniform2fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign;
+glUniform2i :: (location: GLint, v0: GLint, v1: GLint) #foreign;
+glUniform2iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign;
+glUniform3f :: (location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat) #foreign;
+glUniform3fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign;
+glUniform3i :: (location: GLint, v0: GLint, v1: GLint, v2: GLint) #foreign;
+glUniform3iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign;
+glUniform4f :: (location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat, v3: GLfloat) #foreign;
+glUniform4fv :: (location: GLint, count: GLsizei, value: *GLfloat) #foreign;
+glUniform4i :: (location: GLint, v0: GLint, v1: GLint, v2: GLint, v3: GLint) #foreign;
+glUniform4iv :: (location: GLint, count: GLsizei, value: *GLint) #foreign;
+glUniformMatrix2fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix3fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix4fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUseProgram :: (program: GLuint) #foreign;
+glValidateProgram :: (program: GLuint) #foreign;
+glVertexAttrib1f :: (index: GLuint, x: GLfloat) #foreign;
+glVertexAttrib2f :: (index: GLuint, x: GLfloat, y: GLfloat) #foreign;
+glVertexAttrib3f :: (index: GLuint, x: GLfloat, y: GLfloat, z: GLfloat) #foreign;
+glVertexAttrib4f :: (index: GLuint, x: GLfloat, y: GLfloat, z: GLfloat, w: GLfloat) #foreign;
+glVertexAttrib1fv :: (index: GLuint, v: *GLfloat) #foreign;
+glVertexAttrib2fv :: (index: GLuint, v: *GLfloat) #foreign;
+glVertexAttrib3fv :: (index: GLuint, v: *GLfloat) #foreign;
+glVertexAttrib4fv :: (index: GLuint, v: *GLfloat) #foreign;
+glVertexAttribPointer :: (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: *void) #foreign;
+glViewport :: (x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
 
 // webgl 2
-glBeginQuery :: (target: GLenum, id: GLuint) #foreign WASM;
-glBeginTransformFeedback :: (primitiveMode: GLenum) #foreign WASM;
-glBindBufferBase :: (target: GLenum, index: GLuint, buffer: GLuint) #foreign WASM;
-glBindBufferRange :: (target: GLenum, index: GLuint, buffer: GLuint, offset: GLintptr, size: GLsizeiptr) #foreign WASM;
-glBindSampler :: (unit: GLuint, sampler: GLuint) #foreign WASM;
-glBindTransformFeedback :: (target: GLenum, id: GLuint) #foreign WASM;
-glBindVertexArray :: (array: GLuint) #foreign WASM;
-glBlitFramebuffer :: (srcX0: GLint, srcY0: GLint, srcX1: GLint, srcY1: GLint, dstX0: GLint, dstY0: GLint, dstX1: GLint, dstY1: GLint, mask: GLbitfield, filter: GLenum) #foreign WASM;
-glClearBufferiv :: (buffer: GLenum, drawbuffer: GLint, value: *GLint) #foreign WASM; // glClearBufferiv
-glClearBufferuiv :: (buffer: GLenum, drawbuffer: GLint, value: *GLuint) #foreign WASM; // glClearBufferuiv
-glClearBufferfv :: (buffer: GLenum, drawbuffer: GLint, value: *GLfloat) #foreign WASM; // glClearBufferfv
-glClearBufferfi :: (buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint) #foreign WASM; // glClearBufferfi
-glClientWaitSync :: (sync: GLsync, flags: GLbitfield, timeout: GLuint64) -> GLenum #foreign WASM;
-glCompressedTexSubImage3D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, imageSize: GLsizei, data: *void) #foreign WASM;
-glCopyBufferSubData :: (readTarget: GLenum, writeTarget: GLenum, readOffset: GLintptr, writeOffset: GLintptr, size: GLsizeiptr) #foreign WASM;
-glCopyTexSubImage3D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign WASM;
-glCreateQueries :: (target: GLenum, n: GLsizei, ids: *GLuint) #foreign WASM; // glCreateQuery
-glCreateSamplers :: (n: GLsizei, samplers: *GLuint) #foreign WASM; // glCreateSampler
-glCreateTransformFeedbacks :: (n: GLsizei, ids: *GLuint) #foreign WASM; // glCreateTransformFeedback
-glGenVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign WASM; // glCreateVertexArray
-glDeleteQueries :: (n: GLsizei, ids: *GLuint) #foreign WASM; // glDeleteQuery
-glDeleteSamplers :: (count: GLsizei, samplers: *GLuint) #foreign WASM; // glDeleteSampler
-glDeleteSync :: (sync: GLsync) #foreign WASM;
-glDeleteTransformFeedbacks :: (n: GLsizei, ids: *GLuint) #foreign WASM; // glDeleteTransformFeedback
-glDeleteVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign WASM; // glDeleteVertexArray
-glDrawArraysInstanced :: (mode: GLenum, first: GLint, count: GLsizei, instancecount: GLsizei) #foreign WASM;
-glDrawBuffers :: (n: GLsizei, bufs: *GLenum) #foreign WASM;
-glDrawElementsInstanced :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void, instancecount: GLsizei) #foreign WASM;
-glDrawRangeElements :: (mode: GLenum, start: GLuint, end: GLuint, count: GLsizei, type: GLenum, indices: *void) #foreign WASM;
-glEndQuery :: (target: GLenum) #foreign WASM;
-glEndTransformFeedback :: () #foreign WASM;
-glFenceSync :: (condition: GLenum, flags: GLbitfield) -> GLsync #foreign WASM;
-glFramebufferTextureLayer :: (target: GLenum, attachment: GLenum, texture: GLuint, level: GLint, layer: GLint) #foreign WASM;
-glGetActiveUniformBlockName :: (program: GLuint, uniformBlockIndex: GLuint, bufSize: GLsizei, length: *GLsizei, uniformBlockName: *GLchar) #foreign WASM;
-glGetActiveUniformBlockiv :: (program: GLuint, uniformBlockIndex: GLuint, pname: GLenum, params: *GLint) #foreign WASM; // glGetActiveUniformBlockParameter
-glGetActiveUniformsiv :: (program: GLuint, uniformCount: GLsizei, uniformIndices: *GLuint, pname: GLenum, params: *GLint) #foreign WASM; // glGetActiveUniforms
-glGetBufferSubData :: (target: GLenum, offset: GLintptr, size: GLsizeiptr, data: *void) #foreign WASM;
-glGetFragDataLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign WASM;
-glGetIndexedParameter :: (target: GLenum, index: GLuint) -> GLint #foreign WASM;
-glGetInternalformativ :: (target: GLenum, internalformat: GLenum, pname: GLenum, bufSize: GLsizei, params: *GLint) #foreign WASM; // glGetInternalformatParameter
-glGetQueryObjectiv :: (id: GLuint, pname: GLenum, params: *GLint) #foreign WASM; // glGetQuery
-glGetQueryObjectuiv :: (id: GLuint, pname: GLenum, params: *GLuint) #foreign WASM; // glGetQuery
-glGetQueryiv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign WASM; // glGetQueryParameter
-glGetSamplerParameteriv :: (sampler: GLuint, pname: GLenum, params: *GLint) #foreign WASM; // glGetSamplerParameter
-glGetSamplerParameterfv :: (sampler: GLuint, pname: GLenum, params: *GLfloat) #foreign WASM; // glGetSamplerParameter
-glGetSynciv :: (sync: GLsync, pname: GLenum, bufSize: GLsizei, length: *GLsizei, values: *GLint) #foreign WASM; // glGetSyncParameter
-glGetTransformFeedbackVarying :: (program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLsizei, type: *GLenum, name: *GLchar) #foreign WASM;
-glGetUniformBlockIndex :: (program: GLuint, uniformBlockName: *GLchar) -> GLuint #foreign WASM;
-glGetUniformIndices :: (program: GLuint, uniformCount: GLsizei, uniformNames: **GLchar, uniformIndices: *GLuint) #foreign WASM;
-glInvalidateFramebuffer :: (target: GLenum, numAttachments: GLsizei, attachments: *GLenum) #foreign WASM;
-glInvalidateSubFramebuffer :: (target: GLenum, numAttachments: GLsizei, attachments: *GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign WASM;
-glIsQuery :: (id: GLuint) -> GLboolean #foreign WASM;
-glIsSampler :: (sampler: GLuint) -> GLboolean #foreign WASM;
-glIsSync :: (sync: GLsync) -> GLboolean #foreign WASM;
-glIsTransformFeedback :: (id: GLuint) -> GLboolean #foreign WASM;
-glIsVertexArray :: (array: GLuint) -> GLboolean #foreign WASM;
-glPauseTransformFeedback :: () #foreign WASM;
-glReadBuffer :: (src: GLenum) #foreign WASM;
-glRenderbufferStorageMultisample :: (target: GLenum, samples: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei) #foreign WASM;
-glResumeTransformFeedback :: () #foreign WASM;
-glSamplerParameteri :: (sampler: GLuint, pname: GLenum, param: GLint) #foreign WASM;
-glSamplerParameterf :: (sampler: GLuint, pname: GLenum, param: GLfloat) #foreign WASM;
-glTexImage3D :: (target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, format: GLenum, type: GLenum, pixels: *void) #foreign WASM;
-glTexStorage2D :: (target: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei) #foreign WASM;
-glTexStorage3D :: (target: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei) #foreign WASM;
-glTexSubImage3D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum, pixels: *void) #foreign WASM;
-glTransformFeedbackVaryings :: (program: GLuint, count: GLsizei, varyings: **GLchar, bufferMode: GLenum) #foreign WASM;
-glUniform1ui :: (location: GLint, v0: GLuint) #foreign WASM;
-glUniform1uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign WASM;
-glUniform2uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign WASM;
-glUniform3uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign WASM;
-glUniform4uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign WASM;
-glUniformBlockBinding :: (program: GLuint, uniformBlockIndex: GLuint, uniformBlockBinding: GLuint) #foreign WASM;
-glUniformMatrix3x2fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix4x2fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix2x3fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix4x3fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix2x4fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glUniformMatrix3x4fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign WASM;
-glVertexAttribDivisor :: (index: GLuint, divisor: GLuint) #foreign WASM;
-glVertexAttribI4i :: (index: GLuint, x: GLint, y: GLint, z: GLint, w: GLint) #foreign WASM;
-glVertexAttribI4ui :: (index: GLuint, x: GLuint, y: GLuint, z: GLuint, w: GLuint) #foreign WASM;
-glVertexAttribI4iv :: (index: GLuint, v: *GLint) #foreign WASM;
-glVertexAttribI4uiv :: (index: GLuint, v: *GLuint) #foreign WASM;
-glVertexAttribIPointer :: (index: GLuint, size: GLint, type: GLenum, stride: GLsizei, pointer: *void) #foreign WASM;
-glWaitSync :: (sync: GLsync, flags: GLbitfield, timeout: GLuint64) #foreign WASM;
+glBeginQuery :: (target: GLenum, id: GLuint) #foreign;
+glBeginTransformFeedback :: (primitiveMode: GLenum) #foreign;
+glBindBufferBase :: (target: GLenum, index: GLuint, buffer: GLuint) #foreign;
+glBindBufferRange :: (target: GLenum, index: GLuint, buffer: GLuint, offset: GLintptr, size: GLsizeiptr) #foreign;
+glBindSampler :: (unit: GLuint, sampler: GLuint) #foreign;
+glBindTransformFeedback :: (target: GLenum, id: GLuint) #foreign;
+glBindVertexArray :: (array: GLuint) #foreign;
+glBlitFramebuffer :: (srcX0: GLint, srcY0: GLint, srcX1: GLint, srcY1: GLint, dstX0: GLint, dstY0: GLint, dstX1: GLint, dstY1: GLint, mask: GLbitfield, filter: GLenum) #foreign;
+glClearBufferiv :: (buffer: GLenum, drawbuffer: GLint, value: *GLint) #foreign; // glClearBufferiv
+glClearBufferuiv :: (buffer: GLenum, drawbuffer: GLint, value: *GLuint) #foreign; // glClearBufferuiv
+glClearBufferfv :: (buffer: GLenum, drawbuffer: GLint, value: *GLfloat) #foreign; // glClearBufferfv
+glClearBufferfi :: (buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint) #foreign; // glClearBufferfi
+glClientWaitSync :: (sync: GLsync, flags: GLbitfield, timeout: GLuint64) -> GLenum #foreign;
+glCompressedTexSubImage3D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, imageSize: GLsizei, data: *void) #foreign;
+glCopyBufferSubData :: (readTarget: GLenum, writeTarget: GLenum, readOffset: GLintptr, writeOffset: GLintptr, size: GLsizeiptr) #foreign;
+glCopyTexSubImage3D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
+glCreateQueries :: (target: GLenum, n: GLsizei, ids: *GLuint) #foreign; // glCreateQuery
+glCreateSamplers :: (n: GLsizei, samplers: *GLuint) #foreign; // glCreateSampler
+glCreateTransformFeedbacks :: (n: GLsizei, ids: *GLuint) #foreign; // glCreateTransformFeedback
+glGenVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign; // glCreateVertexArray
+glDeleteQueries :: (n: GLsizei, ids: *GLuint) #foreign; // glDeleteQuery
+glDeleteSamplers :: (count: GLsizei, samplers: *GLuint) #foreign; // glDeleteSampler
+glDeleteSync :: (sync: GLsync) #foreign;
+glDeleteTransformFeedbacks :: (n: GLsizei, ids: *GLuint) #foreign; // glDeleteTransformFeedback
+glDeleteVertexArrays :: (n: GLsizei, arrays: *GLuint) #foreign; // glDeleteVertexArray
+glDrawArraysInstanced :: (mode: GLenum, first: GLint, count: GLsizei, instancecount: GLsizei) #foreign;
+glDrawBuffers :: (n: GLsizei, bufs: *GLenum) #foreign;
+glDrawElementsInstanced :: (mode: GLenum, count: GLsizei, type: GLenum, indices: *void, instancecount: GLsizei) #foreign;
+glDrawRangeElements :: (mode: GLenum, start: GLuint, end: GLuint, count: GLsizei, type: GLenum, indices: *void) #foreign;
+glEndQuery :: (target: GLenum) #foreign;
+glEndTransformFeedback :: () #foreign;
+glFenceSync :: (condition: GLenum, flags: GLbitfield) -> GLsync #foreign;
+glFramebufferTextureLayer :: (target: GLenum, attachment: GLenum, texture: GLuint, level: GLint, layer: GLint) #foreign;
+glGetActiveUniformBlockName :: (program: GLuint, uniformBlockIndex: GLuint, bufSize: GLsizei, length: *GLsizei, uniformBlockName: *GLchar) #foreign;
+glGetActiveUniformBlockiv :: (program: GLuint, uniformBlockIndex: GLuint, pname: GLenum, params: *GLint) #foreign; // glGetActiveUniformBlockParameter
+glGetActiveUniformsiv :: (program: GLuint, uniformCount: GLsizei, uniformIndices: *GLuint, pname: GLenum, params: *GLint) #foreign; // glGetActiveUniforms
+glGetBufferSubData :: (target: GLenum, offset: GLintptr, size: GLsizeiptr, data: *void) #foreign;
+glGetFragDataLocation :: (program: GLuint, name: *GLchar) -> GLint #foreign;
+glGetIndexedParameter :: (target: GLenum, index: GLuint) -> GLint #foreign;
+glGetInternalformativ :: (target: GLenum, internalformat: GLenum, pname: GLenum, bufSize: GLsizei, params: *GLint) #foreign; // glGetInternalformatParameter
+glGetQueryObjectiv :: (id: GLuint, pname: GLenum, params: *GLint) #foreign; // glGetQuery
+glGetQueryObjectuiv :: (id: GLuint, pname: GLenum, params: *GLuint) #foreign; // glGetQuery
+glGetQueryiv :: (target: GLenum, pname: GLenum, params: *GLint) #foreign; // glGetQueryParameter
+glGetSamplerParameteriv :: (sampler: GLuint, pname: GLenum, params: *GLint) #foreign; // glGetSamplerParameter
+glGetSamplerParameterfv :: (sampler: GLuint, pname: GLenum, params: *GLfloat) #foreign; // glGetSamplerParameter
+glGetSynciv :: (sync: GLsync, pname: GLenum, bufSize: GLsizei, length: *GLsizei, values: *GLint) #foreign; // glGetSyncParameter
+glGetTransformFeedbackVarying :: (program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLsizei, type: *GLenum, name: *GLchar) #foreign;
+glGetUniformBlockIndex :: (program: GLuint, uniformBlockName: *GLchar) -> GLuint #foreign;
+glGetUniformIndices :: (program: GLuint, uniformCount: GLsizei, uniformNames: **GLchar, uniformIndices: *GLuint) #foreign;
+glInvalidateFramebuffer :: (target: GLenum, numAttachments: GLsizei, attachments: *GLenum) #foreign;
+glInvalidateSubFramebuffer :: (target: GLenum, numAttachments: GLsizei, attachments: *GLenum, x: GLint, y: GLint, width: GLsizei, height: GLsizei) #foreign;
+glIsQuery :: (id: GLuint) -> GLboolean #foreign;
+glIsSampler :: (sampler: GLuint) -> GLboolean #foreign;
+glIsSync :: (sync: GLsync) -> GLboolean #foreign;
+glIsTransformFeedback :: (id: GLuint) -> GLboolean #foreign;
+glIsVertexArray :: (array: GLuint) -> GLboolean #foreign;
+glPauseTransformFeedback :: () #foreign;
+glReadBuffer :: (src: GLenum) #foreign;
+glRenderbufferStorageMultisample :: (target: GLenum, samples: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei) #foreign;
+glResumeTransformFeedback :: () #foreign;
+glSamplerParameteri :: (sampler: GLuint, pname: GLenum, param: GLint) #foreign;
+glSamplerParameterf :: (sampler: GLuint, pname: GLenum, param: GLfloat) #foreign;
+glTexImage3D :: (target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, border: GLint, format: GLenum, type: GLenum, pixels: *void) #foreign;
+glTexStorage2D :: (target: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei) #foreign;
+glTexStorage3D :: (target: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei, height: GLsizei, depth: GLsizei) #foreign;
+glTexSubImage3D :: (target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum, pixels: *void) #foreign;
+glTransformFeedbackVaryings :: (program: GLuint, count: GLsizei, varyings: **GLchar, bufferMode: GLenum) #foreign;
+glUniform1ui :: (location: GLint, v0: GLuint) #foreign;
+glUniform1uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign;
+glUniform2uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign;
+glUniform3uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign;
+glUniform4uiv :: (location: GLint, count: GLsizei, value: *GLuint) #foreign;
+glUniformBlockBinding :: (program: GLuint, uniformBlockIndex: GLuint, uniformBlockBinding: GLuint) #foreign;
+glUniformMatrix3x2fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix4x2fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix2x3fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix4x3fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix2x4fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glUniformMatrix3x4fv :: (location: GLint, count: GLsizei, transpose: GLboolean, value: *GLfloat) #foreign;
+glVertexAttribDivisor :: (index: GLuint, divisor: GLuint) #foreign;
+glVertexAttribI4i :: (index: GLuint, x: GLint, y: GLint, z: GLint, w: GLint) #foreign;
+glVertexAttribI4ui :: (index: GLuint, x: GLuint, y: GLuint, z: GLuint, w: GLuint) #foreign;
+glVertexAttribI4iv :: (index: GLuint, v: *GLint) #foreign;
+glVertexAttribI4uiv :: (index: GLuint, v: *GLuint) #foreign;
+glVertexAttribIPointer :: (index: GLuint, size: GLint, type: GLenum, stride: GLsizei, pointer: *void) #foreign;
+glWaitSync :: (sync: GLsync, flags: GLbitfield, timeout: GLuint64) #foreign;
 
 GLenum :: u32;
 GLboolean :: bool;
@@ -2146,7 +2146,3 @@ GL_TEXTURE_MAX_ANISOTROPY :: 0x84FE;
 GL_MAX_TEXTURE_MAX_ANISOTROPY :: 0x84FF;
 GL_TRANSFORM_FEEDBACK_OVERFLOW :: 0x82EC;
 GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW :: 0x82ED;
-
-#scope_file
-
-WASM :: #library "WASM";
