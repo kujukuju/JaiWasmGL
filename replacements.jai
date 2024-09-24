@@ -90,31 +90,83 @@ Replacements :: struct {
     //     return true;
     // } @PrintLike
 
-    read_entire_file :: (name: string, zero_terminated := false, log_errors := true) -> string, bool {
-        result: string;
+    // read_entire_file :: (name: string, zero_terminated := false, log_errors := true) -> string, bool {
+    //     result: string;
 
-        // can you load a file successfully with no data?
-        read_entire_file_wasm(name.data, name.count, log_errors, *result.data, *result.count);
-        view: [] u8;
-        view.data = result.data;
-        view.count = result.count;
-        return result, !!result.data;
+    //     // can you load a file successfully with no data?
+    //     read_entire_file_wasm(name.data, name.count, log_errors, *result.data, *result.count);
+    //     view: [] u8;
+    //     view.data = result.data;
+    //     view.count = result.count;
+    //     return result, !!result.data;
+    // }
+
+    init_get_seconds :: () {
+        get_seconds_base_time = get_unix_time_wasm();
     }
 
-    get_time :: () -> float64 {
-        unix_ish := get_time_wasm();
-        return cast(float64) unix_ish / 1000.0;
+    seconds_since_init :: () -> float64 {
+        if !is_get_seconds_initialized {
+            is_get_seconds_initialized = true;
+            init_get_seconds();
+        }
+        
+        return cast(float64) (get_unix_time_wasm() - get_seconds_base_time) / 1000.0;
     }
 
-    file_exists :: (file_path: string) -> bool {
-        return file_exists_wasm(file_path.data, file_path.count);
+    alloc :: (size: s64) -> *void {
+        return alloc_wasm(size);
     }
 
-    // write_string_unsynchronized :: (s: string, to_standard_error := false) #no_context {
-    //     WriteFile :: (handle: *void, buffer: *void, buffer_length: u32, written_result: *u32, overlapped: *void) -> s32 #foreign;
+    free :: (memory: *void) {
+        free_wasm(memory);
+    }
 
-    //     written: u32;
-    //     // TODO eventually support stderror
-    //     status := WriteFile(null, s.data, cast(u32) s.count, *written, null);
+    realloc :: (memory: *void, size: s64, old_size: s64) -> *void {
+        return realloc_wasm(memory, size, old_size);
+    }
+
+    // write_builder :: (using builder: *String_Builder, do_reset := true, to_standard_error := false) -> s64 {
+    //     //
+    //     // Future expanded functionality: We can make a macro
+    //     // that calls its argument code with a string representing
+    //     // the contents of each bucket. Then you can do whatever
+    //     // operation you want.
+    //     //              -jblow, 19 July 2019
+    //     //
+
+    //     if !allocator.proc return 0;
+
+    //     final: [..] u8;
+    //     defer array_free(final);
+
+    //     buffer  := get_base_buffer(builder);
+    //     while buffer {
+    //         s: string = ---;
+    //         s.data  = get_buffer_data(buffer);
+    //         s.count = buffer.count;
+
+    //         string_bytes: [] u8;
+    //         string_bytes.data = s.data;
+    //         string_bytes.count = s.count;
+    //         array_add(*final, ..string_bytes);
+
+    //         buffer = buffer.next;
+    //     }
+
+    //     if do_reset reset(builder);
+
+    //     wasm_write_string(final.count, final.data, to_standard_error);
+
+    //     return final.count;
+    // }
+
+    // file_exists :: (file_path: string) -> bool {
+    //     return file_exists_wasm(file_path.data, file_path.count);
     // }
 }
+
+#scope_file
+
+is_get_seconds_initialized: bool;
+get_seconds_base_time: u64;

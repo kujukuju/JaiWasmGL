@@ -35,6 +35,7 @@ const Jai = {
         exported = exported || {};
         const merged = {
             ...allocator,
+            ...stb_image,
             ...bindings,
             ...exported,
         };
@@ -45,7 +46,7 @@ const Jai = {
                 // NOTE: this runs when the binding is just established, when the instance is instantiated. NOT when its called.
                 get(target, prop, receiver) {
                     if (target.hasOwnProperty(prop)) {
-                        console.log('Linked ', prop, target[prop]);
+                        // console.log('Linked ', prop, target[prop]);
                         return target[prop];
                     }
                     return () => console.error('Missing function: ' +  prop);
@@ -71,10 +72,13 @@ const Jai = {
             //         }
             //     }
             // })();
-            Jai.instance.exports.main2(NULL64);
+            Jai.instance.exports.wasm_main(NULL64);
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat
             const validRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+_[0-9a-z]+$');
+
+            console.log(Jai.instance);
+            console.log(Jai.instance.exports);
 
             for (const name in Jai.instance.exports) {
                 if (validRegex.test(name)) {
@@ -89,7 +93,7 @@ const Jai = {
                     }
     
                     if (typeof Jai.instance.exports[name] === 'function') {
-                        console.log('Binding context to ', name, Jai.instance.exports[name]);
+                        // console.log('Binding context to ', name, Jai.instance.exports[name]);
                         Jai[validName] = Jai.instance.exports[name].bind(this, Jai.context);
                     }
                 }
@@ -585,6 +589,18 @@ const allocator = {
     },
 };
 
+const stb_image = {
+    stbi_load_from_memory: (buffer /**u8*/, len /*s32*/, x /**s32*/, y /**s32*/, channels_in_file /**s32*/, desired_channels /*s32*/) => {
+        console.error('Implement stbi_load_from_memory.');
+    },
+    stbi_image_free: (retval_from_stbi_load /**void*/) => {
+        console.error('Implement stbi_image_free.');
+    },
+    stbi_write_png: (filename /**u8*/, w /*s32*/, h /*s32*/, comp /*s32*/, data /**void*/, stride_in_bytes /*s32*/) => {
+        console.error('Implement stbi_write_png.');
+    },
+};
+
 const bindings = {
     memset: (dest, value, length) => {
         console.log('memset');
@@ -632,6 +648,21 @@ const bindings = {
     LeaveCriticalSection: () => {/*does nothing since we dont require thread sync, probably*/},
     VirtualAlloc: () => {
         console.log('VirtualAlloc');
+    },
+    wasm_write_string: (count /*s64*/, data /**void*/, to_standard_error /*bool*/) => {
+        console.log('wasm write string');
+        const bytes = Helpers.u8.subarray(Number(data), Number(data) + Number(count));
+        if (to_standard_error) {
+            console.error(Helpers.decoder.decode(bytes));
+        } else {
+            console.log(Helpers.decoder.decode(bytes));
+        }
+    },
+    read_entire_file_wasm: (name_data /**u8*/, name_count /*int*/, log_errors /*bool*/, data /***u8*/, count /**int*/) => {
+        console.log('read entire file');
+    },
+    what: () => {
+        console.log('what');
     },
     // opengl
     glAttachShader: (program /*GLuint*/, shader /*GLuint*/) => {

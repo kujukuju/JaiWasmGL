@@ -1,69 +1,75 @@
+PRODUCTION :: false;
 
 VBO: u32;
 VAO: u32;
 EBO: u32;
 shaderProgram: u32;
 
-#import "JaiWasmGL";
+#if WASM {
+    #import "JaiWasmGL";
+} else {
+    #import "GL"(DUMP_GL_ERRORS = !PRODUCTION, DEFAULT_MSAA = 0);
+
+    set_context :: (c: *Context) #expand {}
+}
 #import "FixedStringJai";
-#import "KodaJai"(WASM = true);
+#import "File";
+// #import "KodaJai"()(PRODUCTION = PRODUCTION);
 
 simple_function :: () #foreign;
 callback_function :: (a: u8, b: u8) #foreign;
 
-#program_export "main2"
+#if WASM {
+    #program_export "wasm_main"
+    wasm_main :: () {
+        ctx := __jai_runtime_init(0, null);
+
+        context.allocator = kalloc_allocator;
+
+        push_context ctx.* {
+            main();
+        }
+    }
+}
+
 main :: () {
     set_context(*context);
 
-    context.allocator = kalloc_allocator;
+    print("WASM %\n", WASM);
+    print("huh\n");
 
-    // data: u8;
-    // memset(*data, 2, 1);
+    // file_contents, file_success := read_entire_file("src/Game.jai");
+    // print("success, contents: %, %\n", file_success, file_contents);
 
-    bytes := alloc(2);
+    // koda_init();
+    // create_window("Jai WASM", 1920, 1080);
 
-    // fixed: FixedString(100);
-    // append(*fixed, "test2 = test");
-    // append(*fixed, create_fixed_string(data));
+    // set_cull_face(false);
+    // set_depth_test(false);
 
-    // // print("test1\n");
-    // write_string("test2\n");
-    // write_string_unsynchronized(temp_string(fixed));
-
-    // data := "test";
-    // WriteFile(null, *data, 4, null, null);
-
-    // simple_function();
-    // alloc_wasm(null, 10);
-    // write_string("huh\n");
-    // alloc(10);
-
-    // data1: u8 = 1;
-    // data2: u8 = 2;
-    // memcpy(*data1, *data2, 1);
-    // callback_function(data1, data2);
-
-    vertexShaderSource: *u8 = #string DONE
+    vertexShaderSource: string = #string ___glsl
     #version 300 es
     in vec3 aPos;
     void main() {
-       gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
     }
-    DONE
-    fragmentShaderSource: *u8 = #string DONE
+    ___glsl
+    vertexShaderCount := cast(s32) vertexShaderSource.count;
+    fragmentShaderSource: string = #string ___glsl
     #version 300 es
     precision mediump float;
     out vec4 FragColor;
     void main() {
-       FragColor = vec4(1.0, 0.5, 0.2, 1.0);
+    FragColor = vec4(1.0, 0.5, 0.2, 1.0);
     }
-    DONE
+    ___glsl
+    fragmentShaderCount := cast(s32) fragmentShaderSource.count;
 
     // build and compile our shader program
     // ------------------------------------
     // vertex shader
     vertexShader: u32 = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, *vertexShaderSource, null);
+    glShaderSource(vertexShader, 1, *vertexShaderSource.data, *vertexShaderCount);
     glCompileShader(vertexShader);
     // check for shader compile errors
     success: s32;
@@ -78,7 +84,7 @@ main :: () {
     }
     // fragment shader
     fragmentShader: u32 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, *fragmentShaderSource, null);
+    glShaderSource(fragmentShader, 1, *fragmentShaderSource.data, *fragmentShaderCount);
     glCompileShader(fragmentShader);
     // check for shader compile errors
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, *success);
@@ -103,8 +109,8 @@ main :: () {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     vertices: [] float = .[
-         0.0,  0.5, 0.0,  // top right
-         0.5, -0.5, 0.0,  // bottom right
+        0.0,  0.5, 0.0,  // top right
+        0.5, -0.5, 0.0,  // bottom right
         -0.5, -0.5, 0.0,  // bottom left
     ];
     indices: [] u32 = .[  // note that we start from 0!
@@ -134,12 +140,17 @@ main :: () {
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
+
+    // while !koda_should_exit() {
+        reset_temporary_storage();
+
+        // update_inputs();
+
+        update();
+    // }
 }
 
 update :: () {
-    glClearColor(0.2, 0.3, 0.3, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-
     // draw our first triangle
     glUseProgram(shaderProgram);
     glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized

@@ -1,36 +1,44 @@
 
-#program_export
-heap_base: u64;
+#if WASM {
 
-#scope_module
+    #program_export
+    heap_base: u64;
 
-kalloc :: (size: s64) -> *void #foreign;
-krealloc :: (p: *void, size: s64) -> *void #foreign;
-kfree :: (p: *void) #foreign;
+    #scope_module
 
-#scope_export
+    kalloc :: (size: s64) -> *void #foreign;
+    krealloc :: (p: *void, size: s64) -> *void #foreign;
+    kfree :: (p: *void) #foreign;
 
-kalloc_allocator :: Allocator.{kalloc_allocator_proc, null};
+    #scope_export
 
-kalloc_allocator_proc :: (mode: Allocator_Mode, requested_size: s64, old_size: s64, old_memory: *void, allocator_data: *void) -> *void {
-    if mode == {
-        case .STARTUP;
-            return null;
+    kalloc_allocator :: Allocator.{kalloc_allocator_proc, null};
 
-        case .ALLOCATE;
-            return kalloc(requested_size);
+    kalloc_allocator_proc :: (mode: Allocator_Mode, requested_size: s64, old_size: s64, old_memory: *void, allocator_data: *void) -> *void {
+        if mode == {
+            case .STARTUP;
+                return null;
 
-        case .RESIZE;
-            return krealloc(old_memory, requested_size);
+            case .ALLOCATE;
+                return kalloc(requested_size);
 
-        case .FREE;
-            kfree(old_memory);
-            return null;
+            case .RESIZE;
+                return krealloc(old_memory, requested_size);
 
-        case;
-            context.assertion_failed(#location(), "WALLOC ALLOCATOR DOES NOT SUPPORT FLAG");
-            return null;
+            case .FREE;
+                kfree(old_memory);
+                return null;
+
+            case;
+                context.assertion_failed(#location(), "WALLOC ALLOCATOR DOES NOT SUPPORT FLAG");
+                return null;
+        }
     }
+
+} else {
+
+    
+
 }
 
 #import "Basic";
