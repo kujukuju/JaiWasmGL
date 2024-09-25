@@ -1,8 +1,5 @@
 
 Replacements :: struct {
-    #import "Basic";
-    #import "System";
-
     // print_to_builder :: (builder : *String_Builder, format_string : string, args: .. Any) -> bool {
     //     implicit_index_cursor := 0;
 
@@ -101,18 +98,18 @@ Replacements :: struct {
     //     return result, !!result.data;
     // }
 
-    init_get_seconds :: () {
-        get_seconds_base_time = get_unix_time_wasm();
-    }
+    // init_get_seconds :: () {
+    //     get_seconds_base_time = get_unix_time_wasm();
+    // }
 
-    seconds_since_init :: () -> float64 {
-        if !is_get_seconds_initialized {
-            is_get_seconds_initialized = true;
-            init_get_seconds();
-        }
+    // seconds_since_init :: () -> float64 {
+    //     if !is_get_seconds_initialized {
+    //         is_get_seconds_initialized = true;
+    //         init_get_seconds();
+    //     }
         
-        return cast(float64) (get_unix_time_wasm() - get_seconds_base_time) / 1000.0;
-    }
+    //     return cast(float64) (get_unix_time_wasm() - get_seconds_base_time) / 1000.0;
+    // }
 
     alloc :: (size: s64) -> *void {
         return alloc_wasm(size);
@@ -170,3 +167,6 @@ Replacements :: struct {
 
 is_get_seconds_initialized: bool;
 get_seconds_base_time: u64;
+
+#import "Basic";
+#import "System";

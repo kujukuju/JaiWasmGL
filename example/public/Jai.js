@@ -36,6 +36,7 @@ const Jai = {
         const merged = {
             ...allocator,
             ...stb_image,
+            ...glfw,
             ...bindings,
             ...exported,
         };
@@ -46,7 +47,7 @@ const Jai = {
                 // NOTE: this runs when the binding is just established, when the instance is instantiated. NOT when its called.
                 get(target, prop, receiver) {
                     if (target.hasOwnProperty(prop)) {
-                        // console.log('Linked ', prop, target[prop]);
+                        console.log('Linked ', prop, target[prop]);
                         return target[prop];
                     }
                     return () => console.error('Missing function: ' +  prop);
@@ -65,20 +66,18 @@ const Jai = {
             Memory.allocated.grow(pages);
             Memory.rebuildAccess();
 
-            // const main = (() => {
-            //     for (const name in Jai.instance.exports) {
-            //         if (name.startsWith('main')) {
-            //             return Jai.instance.exports[name];
-            //         }
-            //     }
-            // })();
-            Jai.instance.exports.wasm_main(NULL64);
+            console.log('heap pointer ', Memory.heapPointer);
 
             // TODO im not really sure technically whats a valid function name in jai, js, and both. should consider this then spit out warnings for incompat
             const validRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+_[0-9a-z]+$');
+            const validExplicitRegex = new RegExp('^[a-zA-Z0-9][a-zA-Z0-9_]+$');
 
             console.log(Jai.instance);
             console.log(Jai.instance.exports);
+
+            Jai.instance.exports.wasm_init(NULL64);
+
+            console.log('context ', Jai.context);
 
             for (const name in Jai.instance.exports) {
                 if (validRegex.test(name)) {
@@ -96,8 +95,27 @@ const Jai = {
                         // console.log('Binding context to ', name, Jai.instance.exports[name]);
                         Jai[validName] = Jai.instance.exports[name].bind(this, Jai.context);
                     }
+                } else if (validExplicitRegex.test(name)) {
+                    console.log('Found explicit name: ', name);
+                    if (Jai[name]) {
+                        console.error('Jai binding already exists. ', name, Jai[name]);
+                        continue;
+                    }
+
+                    if (typeof Jai.instance.exports[name] === 'function') {
+                        Jai[name] = Jai.instance.exports[name].bind(this, Jai.context);
+                    }
                 }
             }
+
+            // const main = (() => {
+            //     for (const name in Jai.instance.exports) {
+            //         if (name.startsWith('main')) {
+            //             return Jai.instance.exports[name];
+            //         }
+            //     }
+            // })();
+            Jai.wasm_main(Jai.context);
 
             Jai.resize(window.innerWidth, window.innerHeight);
         
@@ -162,7 +180,7 @@ const Memory = {
                     if (currentDepth === depth) {
                         Memory.access[currentIndex] = Memory.createAccessValue(ACCESS_CLAIMED, 0);
                         Memory.rebuildParentAvailableSize(currentIndex);
-
+                            
                         return Memory.getPointerFromIndex(currentIndex);
                     } else {
                         // this memory cannot end without finding a valid spot since the previous iterations criteria were met
@@ -563,16 +581,23 @@ const Helpers = {
 
 const allocator = {
     kalloc: (size) => {
-        return BigInt(Memory.alloc(Number(size)));
+        const pointer = BigInt(Memory.alloc(Number(size)));
+        console.log('allocated pointer ', pointer);
+        return pointer;
     },
     krealloc: (pointer, size) => {
+        console.error('realloc', pointer, size);
+        console.log('heap pointer ', Memory.heapPointer);
         if (!pointer) {
-            return BigInt(Memory.alloc(Number(size)));
+            const pointer = BigInt(Memory.alloc(Number(size)));
+            console.log('realloc allocated pointer ', pointer);
+            return pointer;
         }
 
         // TODO try not to move the content, but this will handle most cases already
         const oldSize = Memory.free(Number(pointer));
         const newPointer = BigInt(Memory.alloc(Number(size)));
+        console.log('finally allocated pointer ', newPointer);
 
         // im not sure if you can realloc down, but maybe
         const copySize = Math.min(oldSize, Number(size));
@@ -582,6 +607,7 @@ const allocator = {
             return newPointer;
         } else {
             bindings.memcpy(newPointer, pointer, copySize);
+            return newPointer;
         }
     },
     kfree: (pointer) => {
@@ -591,36 +617,65 @@ const allocator = {
 
 const stb_image = {
     stbi_load_from_memory: (buffer /**u8*/, len /*s32*/, x /**s32*/, y /**s32*/, channels_in_file /**s32*/, desired_channels /*s32*/) => {
-        console.error('Implement stbi_load_from_memory.');
+        console.error('Implement stbi_load_from_memory. There\'s probably a library online that will replace stbi_image but in javascript.');
     },
     stbi_image_free: (retval_from_stbi_load /**void*/) => {
-        console.error('Implement stbi_image_free.');
+        console.error('Implement stbi_image_free. There\'s probably a library online that will replace stbi_image but in javascript.');
     },
     stbi_write_png: (filename /**u8*/, w /*s32*/, h /*s32*/, comp /*s32*/, data /**void*/, stride_in_bytes /*s32*/) => {
-        console.error('Implement stbi_write_png.');
+        console.error('Implement stbi_write_png. There\'s probably a library online that will replace stbi_image but in javascript.');
+    },
+};
+
+const glfw = {
+    glfwInit: () => {
+        return 1;
+    },
+    glfwSetErrorCallback: (callback) => {
+        return BigInt(0);
+    },
+    glfwGetPrimaryMonitor: () => {
+        const window = {
+
+        };
+        return BigInt(Names.addPointerObject(window));
+    },
+    glfwGetVideoMode: (monitor) => {
+        // TODO correct data
+        const result = Jai.get_glfw_vid_mode(1920, 1080, 0, 0, 0, 60);
+        console.log(Jai.get_glfw_vid_mode, result);
+        console.log('vid mode', Jai.get_glfw_vid_mode(1920, 1080, 0, 0, 0, 60));
+        return Jai.get_glfw_vid_mode(1920, 1080, 0, 0, 0, 60);
     },
 };
 
 const bindings = {
+    exit: (sig) => {
+        console.error('Tried to exit...');
+    },
+    alloc_wasm: allocator.kalloc,
+    realloc_wasm: allocator.krealloc,
+    free_wasm: allocator.kfree,
     memset: (dest, value, length) => {
         console.log('memset');
         Helpers.u8.fill(value, Number(dest), Number(dest + length));
         return dest;
     },
     memcpy: (dest, src, length) => {
-        console.log('memcpyed');
+        console.log('memcpyed ', dest, src, length);
         // TODO I want to compare the speeds here
         // const write = new Uint8Array(Memory.allocated.buffer, Number(dest), Number(length));
         // const read = new Uint8Array(Memory.allocated.buffer, Number(src), Number(length));
         // write.set(read);
         dest = Number(dest);
         src = Number(src);
+        length = Number(length);
         if (dest <= src) {
             for (let i = 0; i < length; i++) {
                 Helpers.u8[dest + i] = Helpers.u8[src + i];
             }
         } else {
-            for (let i = length - 1; i >= 0; i--) {
+            for (let i = Number(length) - 1; i >= 0; i--) {
                 Helpers.u8[dest + i] = Helpers.u8[src + i];
             }
         }
@@ -660,9 +715,6 @@ const bindings = {
     },
     read_entire_file_wasm: (name_data /**u8*/, name_count /*int*/, log_errors /*bool*/, data /***u8*/, count /**int*/) => {
         console.log('read entire file');
-    },
-    what: () => {
-        console.log('what');
     },
     // opengl
     glAttachShader: (program /*GLuint*/, shader /*GLuint*/) => {
@@ -1079,10 +1131,19 @@ const bindings = {
     glTexImage2D: (target /*GLenum*/, level /*GLint*/, internalformat /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, border /*GLint*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {
         console.error('Not implemented.');
     },
+    glTexImage2DMultisample: (target /*GLenum*/, samples /*GLsizei*/, internalformat /*GLenum*/, width /*GLsizei*/, height /*GLsizei*/, fixedsamplelocations /*GLboolean*/) => {
+        console.error('Not implemented.');
+    },
     glTexParameterf: (target /*GLenum*/, pname /*GLenum*/, param /*GLfloat*/) => {
         console.error('Not implemented.');
     },
+    glTexParameterfv: (target /*GLenum*/, pname /*GLenum*/, params /**GLfloat*/) => {
+        console.error('Not implemented.');
+    },
     glTexParameteri: (target /*GLenum*/, pname /*GLenum*/, param /*GLint*/) => {
+        console.error('Not implemented.');
+    },
+    glTexParameteriv: (target /*GLenum*/, pname /*GLenum*/, params /**GLint*/) => {
         console.error('Not implemented.');
     },
     glTexSubImage2D: (target /*GLenum*/, level /*GLint*/, xoffset /*GLint*/, yoffset /*GLint*/, width /*GLsizei*/, height /*GLsizei*/, format /*GLenum*/, type /*GLenum*/, pixels /**void*/) => {

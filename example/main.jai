@@ -1,4 +1,5 @@
-#import "Basic";
+Basic :: #import "Basic";
+using Basic;
 #import "Compiler";
 #import "BuildCpp";
 #import "Process";
@@ -123,7 +124,7 @@ build_wasm :: () {
     }();
 
     for replacement: replacement_list {
-        assert(replacement.kind == .PROCEDURE_HEADER);
+        assert(replacement.kind == .PROCEDURE_HEADER, "Replacement kind is %.\n", replacement.kind);
     }
 
     set_build_options_dc(.{do_output = false});
@@ -147,6 +148,7 @@ build_wasm :: () {
     build_options.output_executable_name              = "main";
     build_options.use_custom_link_command             = true;
     build_options.lazy_foreign_function_lookups       = true;
+    // build_options.dead_code_elimination               = .NONE;
     // this should work but it doesn't work with 64232
     // build_options.llvm_options.target_system_features = "+bulk-memory"; // "This options is needed so that "memcpy" and "memset" are mapped to "memory.copy" and "memory.fill" instructions in WASM.
     build_options.llvm_options.enable_split_modules   = false;
@@ -250,7 +252,7 @@ on_message :: (workspace: Workspace, message: *Message) {
 
                 // TODO do I actually watn stdlib now?
                 // cmd("wasm-ld", "-flavor", "wasm", "-m", "wasm64", "--no-entry", "--stack-first", "--export-all", "-z", "stack-size=4182016", "--allow-undefined", object_path, "-o", wasm64_file_path);
-                cmd("lld", "-flavor", "wasm", "-mwasm64", "--no-entry", "--export-dynamic", "--import-undefined", object_path, "-o", wasm64_file_path, "--stack-first", "-z", "stack-size=4182016");
+                cmd("lld", "-flavor", "wasm", "-mwasm64", "--no-entry", "--export-dynamic", "--export-all", "--import-undefined", object_path, "-o", wasm64_file_path, "--stack-first", "-z", "stack-size=4182016");
                 cmd(wasm64232_path, "-o", wasm32_file_path, wasm64_file_path);
                 compiler_custom_link_command_is_complete(workspace);
             }

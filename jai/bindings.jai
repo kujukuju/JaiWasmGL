@@ -6,6 +6,9 @@ get_unix_time_wasm :: () -> u64 #foreign;
 alloc_wasm :: (size: s64) -> *void #foreign;
 realloc_wasm :: (memory: *void, size: s64, old_size: s64) -> *void #foreign;
 free_wasm :: (memory: *void) #foreign;
+#if OS == .WASM {
+    sleep_milliseconds :: (ms: s32) #foreign;
+}
 // wasm_write_string :: (count: s64, data: *void, to_standard_error: bool) #foreign;
 
 #scope_file

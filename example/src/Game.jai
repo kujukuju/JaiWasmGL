@@ -9,31 +9,33 @@ shaderProgram: u32;
     #import "JaiWasmGL";
 } else {
     #import "GL"(DUMP_GL_ERRORS = !PRODUCTION, DEFAULT_MSAA = 0);
-
-    set_context :: (c: *Context) #expand {}
 }
 #import "FixedStringJai";
 #import "File";
-// #import "KodaJai"()(PRODUCTION = PRODUCTION);
+#import "KodaJai"()(PRODUCTION = PRODUCTION, WASM = WASM);
 
 simple_function :: () #foreign;
 callback_function :: (a: u8, b: u8) #foreign;
 
-#if WASM {
-    #program_export "wasm_main"
-    wasm_main :: () {
-        ctx := __jai_runtime_init(0, null);
+// #if WASM {
+//     #program_export "wasm_main"
+//     wasm_main :: () {
+//         ctx := __jai_runtime_init(0, null);
 
-        context.allocator = kalloc_allocator;
+//         context.allocator = kalloc_allocator;
 
-        push_context ctx.* {
-            main();
-        }
-    }
+//         push_context ctx.* {
+//             main();
+//         }
+//     }
+// }
+
+wasm_main :: () {
+    main();
 }
 
 main :: () {
-    set_context(*context);
+    context.allocator = kalloc_allocator;
 
     print("WASM %\n", WASM);
     print("huh\n");
@@ -41,11 +43,11 @@ main :: () {
     // file_contents, file_success := read_entire_file("src/Game.jai");
     // print("success, contents: %, %\n", file_success, file_contents);
 
-    // koda_init();
-    // create_window("Jai WASM", 1920, 1080);
+    koda_init();
+    create_window("Jai WASM", 1920, 1080);
 
-    // set_cull_face(false);
-    // set_depth_test(false);
+    set_cull_face(false);
+    set_depth_test(false);
 
     vertexShaderSource: string = #string ___glsl
     #version 300 es
@@ -141,13 +143,13 @@ main :: () {
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
-    // while !koda_should_exit() {
+    while !koda_should_exit() {
         reset_temporary_storage();
 
-        // update_inputs();
+        update_inputs();
 
         update();
-    // }
+    }
 }
 
 update :: () {
